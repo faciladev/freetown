@@ -14,6 +14,28 @@
         <q-toolbar-title class="absolute-center"> Free Town </q-toolbar-title>
 
         <q-btn
+          color="white"
+          label="Fasil"
+          flat
+          icon-right="account_circle"
+          class="absolute-right"
+        >
+          <q-menu>
+            <q-list style="min-width: 100px">
+              <q-item clickable v-close-popup>
+                <q-item-section>Edit Profile</q-item-section>
+              </q-item>
+              <q-item clickable v-close-popup>
+                <q-item-section>Setting</q-item-section>
+              </q-item>
+              <q-separator />
+              <q-item clickable v-close-popup>
+                <q-item-section>Logout</q-item-section>
+              </q-item>
+            </q-list>
+          </q-menu>
+        </q-btn>
+        <!-- <q-btn
           v-if="!loggedIn"
           flat
           to="/auth"
@@ -28,7 +50,7 @@
           icon-right="account_circle"
           label="Logout"
           @click="logoutUser"
-        />
+        /> -->
       </q-toolbar>
     </q-header>
 
@@ -58,46 +80,22 @@ import EssentialLink from "components/EssentialLink.vue";
 
 const linksList = [
   {
-    title: "Docs",
-    caption: "quasar.dev",
-    icon: "school",
-    link: "https://quasar.dev",
+    title: "Home",
+    caption: "Transactions",
+    icon: "home",
+    link: "#/",
   },
   {
-    title: "Github",
-    caption: "github.com/quasarframework",
-    icon: "code",
-    link: "https://github.com/quasarframework",
+    title: "Settings",
+    caption: "Reward Settings",
+    icon: "settings",
+    link: "#/settings",
   },
   {
-    title: "Discord Chat Channel",
-    caption: "chat.quasar.dev",
-    icon: "chat",
-    link: "https://chat.quasar.dev",
-  },
-  {
-    title: "Forum",
-    caption: "forum.quasar.dev",
-    icon: "record_voice_over",
-    link: "https://forum.quasar.dev",
-  },
-  {
-    title: "Twitter",
-    caption: "@quasarframework",
-    icon: "rss_feed",
-    link: "https://twitter.quasar.dev",
-  },
-  {
-    title: "Facebook",
-    caption: "@QuasarFramework",
-    icon: "public",
-    link: "https://facebook.quasar.dev",
-  },
-  {
-    title: "Quasar Awesome",
-    caption: "Community Quasar projects",
-    icon: "favorite",
-    link: "https://awesome.quasar.dev",
+    title: "Users",
+    caption: "Registered Users",
+    icon: "people",
+    link: "#/users",
   },
 ];
 
@@ -119,6 +117,8 @@ export default defineComponent({
       toggleLeftDrawer() {
         leftDrawerOpen.value = !leftDrawerOpen.value;
       },
+      loggedIn: null,
+      logoutUser: null,
     };
   },
 });
