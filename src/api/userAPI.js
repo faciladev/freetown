@@ -5,6 +5,17 @@ import { showErrorMessage } from "src/functions/function-show-error";
 const user = LocalStorage.getItem("loggedInUser");
 const LIMIT = 10;
 
+let unsubscribe;
+
+export const getBankAPI = (callback) => {
+  return new Promise((resolve, reject) => {
+    unsubscribe = db
+      .collection("businesses")
+      .doc(user.businessId)
+      .onSnapshot({ includeMetadataChanges: true }, callback);
+  });
+};
+
 export const addUserAPI = async (user) => {
   console.log("Add user api called.");
   try {
@@ -193,6 +204,8 @@ export const setSettingsAPI = async (settings) => {
       console.log("New Settings");
       //If setting id is not provided
       //create new setting entry
+      settingsClone["businessId"] = user.businessId;
+
       const docRef = db
         .collection(`businesses/${user.businessId}/settings`)
         .doc();
@@ -210,8 +223,13 @@ export const setSettingsAPI = async (settings) => {
 
 export const loadSettingsAPI = async () => {
   try {
-    const docRef = db.collection(`businesses/${user.businessId}/settings`);
-    const docSnaps = await docRef.limit(1).get();
+    const docSnaps = await db
+      .collectionGroup("settings")
+      .where("businessId", "==", user.businessId)
+      .get();
+    // const docSnaps = await docRef.limit(1).get();
+    console.log("Settings", docSnaps.docs[0].data());
+    console.log("SettingId", docSnaps.docs[0].id);
     if (!docSnaps.empty) {
       return { ...docSnaps.docs[0].data(), id: docSnaps.docs[0].id };
     } else {

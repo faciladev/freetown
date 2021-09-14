@@ -14,6 +14,7 @@ import {
   setSettingsAPI,
   loadSettingsAPI,
   addTransactionAPI,
+  getBankAPI,
 } from "src/api/userAPI";
 const state = {
   loggedIn: false,
@@ -34,9 +35,13 @@ const state = {
     percent: { morning: 0, afternoon: 0, night: 0 },
     sms: { eng: "", amh: "" },
   },
+  bank: null,
 };
 
 const mutations = {
+  setBank(state, value) {
+    state.bank = value;
+  },
   selectUser(state, value) {
     state.selectedUser = value;
     console.log("selectedUser: ", value);
@@ -110,12 +115,29 @@ const mutations = {
       state.settings.sms.amh = payload.val;
     } else if (payload.item == "id") {
       state.settings.id = payload.val;
+    } else if (payload.item == "init") {
+      state.settings = payload.val;
     }
     console.log("settings: ", state.settings);
   },
 };
 
 const actions = {
+  getBank: ({ commit }) => {
+    getBankAPI(function (response) {
+      const business = response.data();
+      commit("setBank", business.bank);
+      // console.log("callback", business.data());
+    });
+    // .then((res) => {
+    //   console.log("BankBal,", res.bank);
+    //   commit("setBank", res.bank);
+    // })
+    // .catch((e) => {
+    //   console.error(e);
+    //   showErrorMessage(e.message);
+    // });
+  },
   setMinAmntStng: ({ commit }, payload) => {
     commit("setSettings", { item: "min", val: payload });
   },
@@ -142,12 +164,14 @@ const actions = {
     const settingId = await setSettingsAPI(state.settings);
     commit("setSettings", { item: "id", val: settingId });
     commit("setSubmitting", false);
+
+    Notify.create("Setting updated!");
     console.log("settingId", settingId);
   },
   loadSettings: async ({ commit }) => {
     const settings = await loadSettingsAPI();
     console.log("settingsAPI", settings);
-    commit("setSettings", settings);
+    commit("setSettings", { item: "init", val: settings });
   },
   async search({ commit }, payload) {
     commit("setSearch", payload.searchTerm);
