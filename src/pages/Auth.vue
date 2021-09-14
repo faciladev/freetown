@@ -18,14 +18,6 @@
       <q-tab-panels v-model="tab" animated>
         <q-tab-panel name="login">
           <q-form @submit="submitForm">
-            <!-- <div class="row q-mb-md">
-              <q-banner class="bg-grey-3 col">
-                <template v-slot:avatar>
-                  <q-icon name="account_circle" color="primary" />
-                </template>
-                Login to to Free Town!
-              </q-banner>
-            </div> -->
             <div class="row q-mb-md">
               <q-input
                 class="col"
@@ -34,6 +26,11 @@
                 label="Email"
                 stack-label
                 lazy-rules
+                :rules="[
+                  (val) =>
+                    isValidEmailAddress(val) ||
+                    'Please enter a valid email address.',
+                ]"
               />
             </div>
             <div class="row q-mb-md">
@@ -63,14 +60,25 @@
 </template>
 
 <script>
-import { ref } from "vue";
+import { ref, reactive } from "vue";
+import { useStore } from "vuex";
 export default {
-  setup(props) {
+  setup() {
+    const store = useStore();
+    const tab = ref("login");
+    const formData = reactive({ email: "", password: "" });
     return {
-      isValidEmailAddress: () => {},
-      formData: { email: "" },
-      tab: ref("login"),
-      submitForm: () => {},
+      isValidEmailAddress: (email) => {
+        const re =
+          /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        return re.test(String(email).toLowerCase());
+      },
+      formData,
+      tab,
+      submitForm: () => {
+        store.dispatch("auth/loginUser", formData);
+        // loginUser(formData);
+      },
     };
   },
 };
