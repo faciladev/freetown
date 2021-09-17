@@ -15,24 +15,13 @@
 <script>
 import { ref, computed } from "vue";
 import { useStore } from "vuex";
-import { useRouter } from "vue-router";
-import { debounce } from "quasar";
 import { selectAll } from "src/directives/directive-select-all";
 export default {
-  props: { searchItem: String },
+  props: { updateSearch: Function },
   setup(props) {
     const store = useStore();
-    const router = useRouter();
     return {
       searchField: computed(() => store.state.auth.search),
-      updateSearch: debounce((value) => {
-        //Query database populate search result
-        store.dispatch("auth/search", {
-          searchTerm: value,
-          searchItem: props.searchItem,
-          router,
-        });
-      }),
     };
   },
   directives: {

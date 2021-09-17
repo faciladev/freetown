@@ -3,24 +3,103 @@ import { LocalStorage } from "quasar";
 import { showErrorMessage } from "src/functions/function-show-error";
 //Get loggedInUser from localStorage
 const user = LocalStorage.getItem("loggedInUser");
-const LIMIT = 10;
+const LIMIT = 2;
+export const redeemAPI = async (qr, businessId) => {
+  try {
+    //Get rewarded transaction by this qr
+    const docRef = db.collectionGroup("transactions");
+    const docSnaps = await docRef
+      .where("businessId", "==", businessId)
+      .where("status", "==", "rewarded")
+      .where("qr", "==", qr)
+      .limit(1)
+      .get();
 
-let unsubscribe;
+    if (!docSnaps.empty) {
+      //If found update status to "redeemed"
+      const transId = docSnaps.docs[0].id;
+      await db.doc(`businesses/${businessId}/transactions/${transId}`).update({
+        status: "redeemed",
+      });
+      //return transaction
+      return { ...docSnaps.docs[0].data(), id: docSnaps.docs[0].id };
+    }
+    return null;
+  } catch (e) {
+    console.error("Error redeeming transaction: ", e);
+    showErrorMessage("Error redeeming transaction");
+  }
+};
 
-export const getBankAPI = (callback) => {
+export const getEarliestCommissionedAPI = (callback, businessId) => {
   return new Promise((resolve, reject) => {
-    unsubscribe = db
-      .collection("businesses")
-      .doc(user.businessId)
+    const docRef = db.collectionGroup("transactions");
+    const unsubscribe = docRef
+      .where("businessId", "==", businessId)
+      .where("status", "==", "commissioned")
+      .orderBy("referenceNo", "asc")
+      .limit(1)
       .onSnapshot({ includeMetadataChanges: true }, callback);
   });
 };
+export const getBankAPI = (callback, businessId) => {
+  return new Promise((resolve, reject) => {
+    const unsubscribe = db
+      .collection("businesses")
+      .doc(businessId)
+      .onSnapshot({ includeMetadataChanges: true }, callback);
+  });
+};
+export const rewardWinnerAPI = async (bank, winner, qr, businessId) => {
+  console.log("bank", bank);
+  console.log("winner", winner);
+  try {
+    await db.runTransaction(async (transaction) => {
+      const businessRef = db.doc(`businesses/${businessId}`);
+      const winnerRef = db.doc(
+        `businesses/${businessId}/transactions/${winner.id}`
+      );
+      const businessDoc = await transaction.get(businessRef);
+      const winnerDoc = await transaction.get(winnerRef);
+      if (businessDoc.exists && winnerDoc.exists) {
+        const newBalance = parseInt(businessDoc.data().bank - winner.rewardAmt);
+        console.log("oldBalance", bank);
+        console.log("newBalance", newBalance);
+        console.log("winner", winner);
+        transaction.update(businessRef, { bank: newBalance });
+        transaction.update(winnerRef, { status: "rewarded", qr });
+      }
+    });
+  } catch (e) {
+    console.log("Error rewarding winner:", e);
+    showErrorMessage("Error rewarding winner");
+  }
+};
 
-export const addUserAPI = async (user) => {
+export const getCommissionedTransByQRAPI = async (qr, businessId) => {
+  try {
+    const docRef = db.collectionGroup("transactions");
+    const docSnaps = await docRef
+      .where("businessId", "==", businessId)
+      .where("status", "==", "commissioned")
+      .where("qr", "==", qr)
+      .get();
+
+    if (!docSnaps.empty) {
+      return { ...docSnaps.docs[0].data(), id: docSnaps.docs[0].id };
+    }
+    return null;
+  } catch (e) {
+    console.error("Error getting transCommissioned Transactions: ", e);
+    showErrorMessage("Error getting Commissioned Trans");
+  }
+};
+
+export const addUserAPI = async (user, businessId) => {
   console.log("Add user api called.");
   try {
     const docRef = await db
-      .collection(`businesses/${user.businessId}/users`)
+      .collection(`businesses/${businessId}/users`)
       .add(user);
     return docRef.id;
   } catch (e) {
@@ -29,10 +108,10 @@ export const addUserAPI = async (user) => {
   }
 };
 
-export const addTransactionAPI = async (transaction) => {
+export const addTransactionAPI = async (transaction, businessId) => {
   try {
     const docRef = await db
-      .collection(`businesses/${user.businessId}/transactions`)
+      .collection(`businesses/${businessId}/transactions`)
       .add(transaction);
     return docRef.id;
   } catch (e) {
@@ -40,13 +119,18 @@ export const addTransactionAPI = async (transaction) => {
     showErrorMessage("Error adding transaction");
   }
 };
-
-export const getAllTransactionsAPI = async (lastDocField, lastDocVal) => {
+export const getTransactionsByStatusAPI = async (
+  statusTerm,
+  lastDocField,
+  lastDocVal,
+  businessId
+) => {
   let transactions = [];
   try {
     const docRef = db.collectionGroup("transactions");
     const docSnaps = await docRef
-      .where("businessId", "==", user.businessId)
+      .where("businessId", "==", businessId)
+      .where("status", "==", statusTerm)
       .orderBy(lastDocField, "asc")
       .startAfter(lastDocVal)
       .limit(LIMIT)
@@ -56,18 +140,45 @@ export const getAllTransactionsAPI = async (lastDocField, lastDocVal) => {
       transactions.push({ ...doc.data(), id: doc.id });
     });
   } catch (e) {
+    console.error("Error getting transactions by status: ", e);
+    showErrorMessage("Error getting transactions by status");
+  }
+  return transactions;
+};
+
+export const getAllTransactionsAPI = async (
+  lastDocField,
+  lastDocVal,
+  businessId
+) => {
+  let transactions = [];
+  try {
+    const docRef = db.collectionGroup("transactions");
+    const docSnaps = await docRef
+      .where("businessId", "==", businessId)
+      .orderBy(lastDocField, "asc")
+      .startAfter(lastDocVal)
+      .limit(LIMIT)
+      .get();
+
+    docSnaps.forEach((doc) => {
+      transactions.push({ ...doc.data(), id: doc.id });
+    });
+  } catch (e) {
+    console.log("explain error");
+    console.log(lastDocField, lastDocVal);
     console.error("Error getting transactions: ", e);
     showErrorMessage("Error getting transactions");
   }
   return transactions;
 };
 
-export const getAllUsersAPI = async (lastDocField, lastDocVal) => {
+export const getAllUsersAPI = async (lastDocField, lastDocVal, businessId) => {
   let users = [];
   try {
     const docRef = db.collectionGroup("users");
     const docSnaps = await docRef
-      .where("businessId", "==", user.businessId)
+      .where("businessId", "==", businessId)
       .orderBy(lastDocField, "asc")
       .startAfter(lastDocVal)
       .limit(LIMIT)
@@ -102,10 +213,10 @@ export const getUserAPI = async (user) => {
   }
 };
 
-export const editUserAPI = async (user) => {
+export const editUserAPI = async (user, businessId) => {
   console.log("editUserAPI:user", user.id);
   try {
-    const docRef = db.doc(`businesses/${user.businessId}/users/${user.id}`);
+    const docRef = db.doc(`businesses/${businessId}/users/${user.id}`);
     const res = await docRef.update(user);
     // const docSnaps = await docRef.get();
     console.log(res);
@@ -131,9 +242,9 @@ export const editTransactionAPI = async (transaction) => {
   }
 };
 
-export const searchUsersAPI = async (searchTerm) => {
+export const searchUsersAPI = async (searchTerm, businessId) => {
   try {
-    const userRef = db.collectionGroup("users");
+    const userRef = db.collection(`businesses/${businessId}/users`);
     const fullName = userRef.where("fullName", "==", searchTerm).get();
     const email = userRef.where("email", "==", searchTerm).get();
     const phoneNo = userRef.where("phoneNo", "==", searchTerm).get();
@@ -152,23 +263,24 @@ export const searchUsersAPI = async (searchTerm) => {
   }
 };
 
-export const searchTransactionsAPI = async (searchTerm) => {
+export const searchTransactionsAPI = async (searchTerm, businessId) => {
   try {
-    const transactionRef = db.collectionGroup("transactions");
+    const transactionRef = db.collection(
+      `businesses/${businessId}/transactions`
+    );
     const referenceNo = transactionRef
       .where("referenceNo", "==", searchTerm)
       .get();
-    // const email = transactionRef.where("email", "==", searchTerm).get();
+    //Status is sorted not searched because it returns a lot of records
+    // const status = transactionRef.where("status", "==", searchTerm).get();
     const phoneNo = transactionRef.where("phoneNo", "==", searchTerm).get();
-    const [referenceNoSnapshot, phoneNoSnapshot] = await Promise.all([
-      referenceNo,
-      phoneNo,
-    ]);
+    const [referenceNoSnapshot, phoneNoSnapshot, statusSnapshot] =
+      await Promise.all([referenceNo, phoneNo]);
 
     const referenceNoArray = referenceNoSnapshot.docs.map((item) =>
       item.data()
     );
-    // const emailArray = emailSnapshot.docs.map((item) => item.data());
+
     const phoneNoArray = phoneNoSnapshot.docs.map((item) => item.data());
 
     const transactionsArray = referenceNoArray.concat(phoneNoArray);
@@ -179,7 +291,7 @@ export const searchTransactionsAPI = async (searchTerm) => {
   }
 };
 
-export const setSettingsAPI = async (settings) => {
+export const setSettingsAPI = async (settings, businessId) => {
   try {
     const settingsClone = Object.assign({}, settings);
     delete settingsClone.id;
@@ -187,9 +299,7 @@ export const setSettingsAPI = async (settings) => {
     //Make sure setting exists
     //then update setting
     if (settings.id) {
-      const docRef = db.doc(
-        `businesses/${user.businessId}/settings/${settings.id}`
-      );
+      const docRef = db.doc(`businesses/${businessId}/settings/${settings.id}`);
       await db.runTransaction(async (transaction) => {
         const settingsDoc = await transaction.get(docRef);
         if (!settingsDoc.exists) {
@@ -204,11 +314,9 @@ export const setSettingsAPI = async (settings) => {
       console.log("New Settings");
       //If setting id is not provided
       //create new setting entry
-      settingsClone["businessId"] = user.businessId;
+      settingsClone["businessId"] = businessId;
 
-      const docRef = db
-        .collection(`businesses/${user.businessId}/settings`)
-        .doc();
+      const docRef = db.collection(`businesses/${businessId}/settings`).doc();
       await db.runTransaction(async (transaction) => {
         transaction.set(docRef, settingsClone);
         console.log("docRef", docRef);
@@ -221,11 +329,11 @@ export const setSettingsAPI = async (settings) => {
   }
 };
 
-export const loadSettingsAPI = async () => {
+export const loadSettingsAPI = async (businessId) => {
   try {
     const docSnaps = await db
       .collectionGroup("settings")
-      .where("businessId", "==", user.businessId)
+      .where("businessId", "==", businessId)
       .get();
     // const docSnaps = await docRef.limit(1).get();
     console.log("Settings", docSnaps.docs[0].data());

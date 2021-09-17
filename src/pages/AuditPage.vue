@@ -18,91 +18,103 @@
     />
     <div class="absolute-center">
       <q-btn
+        :disable="!hasWinner"
+        @click="showReward = true"
         icon="account_balance"
         flat
         :label="businessBank"
         class="q-pa-lg"
-        color="secondary"
+        :color="hasWinner ? 'green' : 'primary'"
         size="2em"
       />
     </div>
-    <q-dialog v-model="showReward">
-      <q-card>
-        <q-card-section class="row">
-          <div class="text-h6">Reward Transaction</div>
-          <q-space />
-          <q-btn flat round dense icon="close" v-close-popup />
-        </q-card-section>
-        <q-list>
-          <q-item>
-            <!-- <q-item-section avatar>
-              <q-icon color="primary" name="local_bar" />
-            </q-item-section> -->
-            <q-item-section>
-              <q-item-label>(251)-932-508181</q-item-label>
-              <q-item-label caption>Phone No.</q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item>
-            <!-- <q-item-section avatar>
-              <q-icon color="primary" name="local_bar" />
-            </q-item-section> -->
-            <q-item-section>
-              <q-item-label>CS-10001-21</q-item-label>
-              <q-item-label caption>Reference No.</q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item>
-            <!-- <q-item-section avatar>
-              <q-icon color="primary" name="local_bar" />
-            </q-item-section> -->
-            <q-item-section>
-              <q-item-label>304.00</q-item-label>
-              <q-item-label caption>Bill Amount.</q-item-label>
-            </q-item-section>
-          </q-item>
-          <q-item>
-            <!-- <q-item-section avatar>
-              <q-icon color="primary" name="local_bar" />
-            </q-item-section> -->
-            <q-item-section>
-              <q-item-label>50%</q-item-label>
-              <q-item-label caption>Reward by Percent</q-item-label>
-            </q-item-section>
-          </q-item>
-        </q-list>
-        <q-item>
-          <!-- <q-item-section avatar>
-              <q-icon color="primary" name="local_bar" />
-            </q-item-section> -->
-          <q-item-section>
-            <q-item-label>152.00</q-item-label>
-            <q-item-label caption>Reward Amount</q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-separator />
-
-        <q-card-actions class="action-menu q-ma-md">
-          <q-btn color="primary">Send </q-btn>
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+    <RewardModal
+      :showReward="showReward"
+      :hasWinner="hasWinner"
+      :nextWinner="nextWinner"
+      :hideModal="hideRewardModal"
+      :reward="reward"
+      :submitting="submitting"
+    />
   </q-page>
 </template>
 
 <script>
 import { defineComponent, ref, onMounted, computed } from "vue";
 import { useStore } from "vuex";
+import RewardModal from "src/components/modals/RewardModal.vue";
+import { LocalStorage, Notify, useQuasar } from "quasar";
+import {
+  Plugins,
+  registerWebPlugin,
+} from "app/src-capacitor/node_modules/@capacitor/core";
+import { showErrorMessage } from "src/functions/function-show-error";
+const { Share } = Plugins;
+import { SmsManager } from "app/src-capacitor/node_modules/@byteowls/capacitor-sms";
 
 export default defineComponent({
+  components: { RewardModal },
+
   setup() {
+    const $q = useQuasar();
+
     const store = useStore();
-    onMounted(() => {
+    const showReward = ref(false);
+    const submitting = ref(false);
+    const nextWinner = computed(() => store.state.auth.nextWinner);
+    const hasWinner = computed(() => store.state.auth.hasWinner);
+    const rewardSMSText = computed(() => store.state.auth.settings.sms.eng);
+
+    onMounted(async () => {
       store.dispatch("auth/getBank");
+      console.log(LocalStorage.getItem("loggedInUser"));
+      // await store.dispatch(
+      //   "auth/loadSettings",
+      //   await LocalStorage.getItem("loggedInUser")
+      // );
+      store.dispatch("auth/getNextWinner");
+      registerWebPlugin(SmsManager);
     });
 
     return {
-      showReward: true,
+      submitting,
+      reward: async () => {
+        if ($q.platform.is.mobile) {
+          const numbers = [nextWinner.value.phoneNo];
+          const qr = await store.dispatch("auth/getUniqueQR", 6);
+
+          let text = rewardSMSText.value;
+          text = text.replace(/\$amount/, nextWinner.value.rewardAmt);
+          text = text.replace(/\$ticket/, qr);
+          text = text.replace(/\$time/, nextWinner.value.time);
+          // const numbers = ["+25193932056"];
+          // const text = "Sample text";
+          submitting.value = true;
+          Plugins.SmsManager.send({
+            numbers,
+            text,
+          })
+            .then(async () => {
+              // SMS app was opened
+              await store.dispatch("auth/rewardWinner", qr);
+              submitting.value = false;
+            })
+            .catch((error) => {
+              submitting.value = false;
+              // see error codes below
+              showErrorMessage("Error rewarding winner: ", error.message);
+            });
+        } else {
+          submitting.value = false;
+          showErrorMessage("This operation is not supported on this device.");
+        }
+      },
+      hideRewardModal: () => (showReward.value = false),
+      hasWinner,
+      nextWinner,
+      rewardSMSText,
+      showReward,
+
       businessBank: computed(() => `$${store.state.auth.bank}`),
       additionalFields: () => {
         return [

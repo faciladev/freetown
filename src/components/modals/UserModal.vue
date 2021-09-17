@@ -10,6 +10,7 @@
         <q-form @submit="submitForm">
           <div class="row q-mb-sm">
             <q-input
+              style="width: 100%"
               v-model="formData.fullName"
               label="Full Name"
               :rules="[
@@ -21,6 +22,7 @@
 
           <div class="row q-mb-sm">
             <q-input
+              style="width: 100%"
               v-model="formData.email"
               label="Email"
               :rules="[(val) => isValidEmail(val) || 'Email must be valid.']"
@@ -37,6 +39,7 @@
           </div>
           <div class="row q-mb-sm">
             <q-input
+              style="width: 100%"
               v-model="formData.phoneNo"
               label="Cell Phone"
               fill-mask
@@ -77,7 +80,7 @@ export default {
 
   setup(props) {
     const store = useStore();
-    const userTypes = ["Sales Person", "Auditor", "Admin"];
+    const userTypes = ["Sales", "Auditor", "Admin"];
     const formData = reactive({
       fullName: "",
       email: "",

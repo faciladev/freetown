@@ -1,80 +1,81 @@
 <template>
   <q-page padding>
-    <q-infinite-scroll @load="onLoad" :offset="500">
-      <div class="row q-mb-lg">
-        <Search searchItem="transaction" />
-      </div>
-      <transition
-        appear
-        enter-active-class="animated zoomIn"
-        leave-active-class="animated zoomOut"
-      >
-        <TransactionListing :transactions="transactions" v-if="transactions" />
-      </transition>
+    <q-banner
+      inline-actions
+      class="q-mb-sm list-header text-white text-center bg-secondary"
+    >
+      <span class="text-bold text-subtitle1">Redeem Transaction</span>
+    </q-banner>
+    <q-card>
+      <q-card-section class="q-pt-none">
+        <q-form @submit="submitForm">
+          <div class="row q-mb-sm">
+            <q-input
+              type="text"
+              style="width: 100%"
+              v-model="qr"
+              label="Winner Code"
+              :rules="[
+                (val) => validateQR(val) || 'Code must be six characters long.',
+              ]"
+            />
+            <p v-if="redeemedAmount" style="color: green">
+              Redeemed Amount: {{ redeemedAmount.rewardAmt }} birr
+            </p>
+          </div>
 
-      <div class="absolute-bottom text-center q-mb-lg no-pointer-events">
-        <q-btn
-          @click="showModal = true"
-          round
-          style="align-item: center"
-          class="all-pointer-events"
-          color="primary"
-          size="24px"
-          icon="add"
-        />
-      </div>
-      <template v-slot:loading>
-        <div class="row justify-center q-my-md">
-          <q-spinner-dots color="primary" size="40px" />
-        </div>
-      </template>
-    </q-infinite-scroll>
-    <TransactionModal :showModal="showModal" :hideModal="hideModal" />
+          <q-card-section>
+            <q-card-actions align="center">
+              <q-btn
+                type="submit"
+                :loading="submitting"
+                icon="crop_free"
+                label="Redeem"
+                class="q-mt-md right"
+                color="primary"
+              />
+            </q-card-actions>
+          </q-card-section>
+        </q-form>
+      </q-card-section>
+    </q-card>
   </q-page>
 </template>
 
 <script>
 import { defineComponent, ref, onMounted, computed } from "vue";
 import { useStore } from "vuex";
-import Search from "src/components/Search.vue";
-import TransactionListing from "src/components/TransactionListing.vue";
-import TransactionModal from "src/components/modals/TransactionModal.vue";
-import EditTransactionModal from "src/components/modals/EditTransactionModal.vue";
 
 export default defineComponent({
-  components: {
-    Search,
-    TransactionListing,
-    TransactionModal,
-    EditTransactionModal,
-  },
   setup() {
     const showModal = ref(false);
     const store = useStore();
-    // onMounted(async () => {
-    //   //Get all users
-    //   await store.dispatch("auth/getAllUsers");
-    //   console.log(store.state.auth.users);
-    // });
+    const qr = ref("");
+    const submitting = ref(false);
+    const redeemedAmount = ref(null);
 
     return {
-      async onLoad(index, done) {
-        await store.dispatch("auth/getAllTransactions", done);
+      redeemedAmount,
+      qr,
+      validateQR: (val) => {
+        if (val.length < 6 || val.length > 6) {
+          return false;
+        }
+        return true;
       },
-      // editModal,
-      showModal,
-      hideModal: () => {
-        showModal.value = false;
+      submitForm: async () => {
+        submitting.value = true;
+        redeemedAmount.value = await store.dispatch(
+          "auth/redeemTransaction",
+          qr.value
+        );
+        submitting.value = false;
       },
-      transactions: computed(() => store.state.auth.transactions),
+      submitting,
+      formData: {},
     };
   },
 });
 </script>
 
-<style scoped>
-.q-scroll-area {
-  display: flex;
-  flex-grow: 1;
-}
-</style>
+<style scoped></style>

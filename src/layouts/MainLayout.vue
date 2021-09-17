@@ -59,8 +59,9 @@
       class="bg-secondary"
     >
       <q-list dark>
+        <q-item-label header> Navigation </q-item-label>
         <EssentialLink
-          v-for="link in essentialLinks"
+          v-for="link in securedLinks(loggedInUser)"
           :key="link.title"
           v-bind="link"
         />
@@ -78,10 +79,16 @@ import EssentialLink from "components/EssentialLink.vue";
 
 const linksList = [
   {
-    title: "Transactions",
-    caption: "Transactions",
+    title: "Home",
+    caption: "Menu",
     icon: "home",
     link: "#/",
+  },
+  {
+    title: "Transactions",
+    caption: "Transactions",
+    icon: "attach_money",
+    link: "#/transactions",
   },
   {
     title: "Redeem",
@@ -96,12 +103,6 @@ const linksList = [
     link: "#/audit",
   },
   {
-    title: "Reward",
-    caption: "Reward Winners",
-    icon: "star",
-    link: "#/reward",
-  },
-  {
     title: "Settings",
     caption: "Settings",
     icon: "settings",
@@ -113,6 +114,12 @@ const linksList = [
     icon: "people",
     link: "#/users",
   },
+  // {
+  //   title: "Report",
+  //   caption: "Report View",
+  //   icon: "assessment",
+  //   link: "#/reports",
+  // },
 ];
 
 import { defineComponent, ref, computed, onMounted } from "vue";
@@ -128,12 +135,26 @@ export default defineComponent({
   setup() {
     const leftDrawerOpen = ref(false);
     const store = useStore();
-    // onMounted(() => {
-    //   console.log(store.state.auth.loggedIn);
-    // });
+
+    const loggedInUser = computed(() => store.state.auth.loggedInUser);
+    const securityRule = {
+      Sales: ["Home", "Transactions", "Redeem"],
+      Auditor: ["Home", "Transactions", "Redeem", "Audit"],
+      Admin: ["Home", "Transactions", "Redeem", "Audit", "Settings", "Users"],
+    };
+    const securedLinks = (loggedInUser) => {
+      return loggedInUser && loggedInUser.userType
+        ? linksList.filter(
+            (link) =>
+              securityRule[loggedInUser.userType].indexOf(link.title) != -1
+          )
+        : [];
+    };
 
     return {
+      securedLinks,
       displayName: (loggedInUser) => {
+        console.log("loGGedINNNN", loggedInUser);
         let displayName = "";
         console.log(loggedInUser);
         if (!loggedInUser.fullName) return "";
@@ -145,8 +166,7 @@ export default defineComponent({
         }
         return displayName;
       },
-      loggedInUser: computed(() => store.state.auth.loggedInUser),
-      essentialLinks: linksList,
+      loggedInUser,
       leftDrawerOpen,
       toggleLeftDrawer() {
         leftDrawerOpen.value = !leftDrawerOpen.value;

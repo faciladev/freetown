@@ -1,34 +1,24 @@
 <template>
   <q-page padding>
-    <q-infinite-scroll @load="onLoad" :offset="500">
-      <div class="row q-mb-lg">
-        <Search searchItem="transaction" />
-      </div>
-      <transition
-        appear
-        enter-active-class="animated zoomIn"
-        leave-active-class="animated zoomOut"
-      >
-        <TransactionListing :transactions="transactions" v-if="transactions" />
-      </transition>
+    <div class="row q-mb-lg">
+      <Search :updateSearch="updateSearch" />
+    </div>
 
-      <div class="absolute-bottom text-center q-mb-lg no-pointer-events">
-        <q-btn
-          @click="showModal = true"
-          round
-          style="align-item: center"
-          class="all-pointer-events"
-          color="primary"
-          size="24px"
-          icon="add"
-        />
-      </div>
-      <template v-slot:loading>
-        <div class="row justify-center q-my-md">
-          <q-spinner-dots color="primary" size="40px" />
-        </div>
-      </template>
-    </q-infinite-scroll>
+    <SearchResult searchItem="transaction" v-if="search" />
+    <TransactionListing v-else />
+
+    <div class="fixed-bottom text-center q-mb-lg no-pointer-events">
+      <q-btn
+        @click="showModal = true"
+        round
+        style="align-item: center"
+        class="all-pointer-events"
+        color="primary"
+        size="24px"
+        icon="add"
+      />
+    </div>
+
     <TransactionModal :showModal="showModal" :hideModal="hideModal" />
   </q-page>
 </template>
@@ -36,10 +26,13 @@
 <script>
 import { defineComponent, ref, onMounted, computed } from "vue";
 import { useStore } from "vuex";
+import { debounce } from "quasar";
+import { useRouter } from "vue-router";
 import Search from "src/components/Search.vue";
 import TransactionListing from "src/components/TransactionListing.vue";
 import TransactionModal from "src/components/modals/TransactionModal.vue";
 import EditTransactionModal from "src/components/modals/EditTransactionModal.vue";
+import SearchResult from "src/components/SearchResult.vue";
 
 export default defineComponent({
   components: {
@@ -47,26 +40,30 @@ export default defineComponent({
     TransactionListing,
     TransactionModal,
     EditTransactionModal,
+    SearchResult,
   },
   setup() {
     const showModal = ref(false);
     const store = useStore();
     // onMounted(async () => {
-    //   //Get all users
-    //   await store.dispatch("auth/getAllUsers");
-    //   console.log(store.state.auth.users);
+
     // });
 
     return {
-      async onLoad(index, done) {
-        await store.dispatch("auth/getAllTransactions", done);
-      },
+      search: computed(() => store.state.auth.search),
+      updateSearch: debounce((value) => {
+        //Query database populate search result
+        store.dispatch("auth/search", {
+          searchTerm: value,
+          searchItem: "transaction",
+        });
+      }),
       // editModal,
       showModal,
       hideModal: () => {
         showModal.value = false;
       },
-      transactions: computed(() => store.state.auth.transactions),
+      // transactions: computed(() => store.state.auth.transactions),
     };
   },
 });

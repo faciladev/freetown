@@ -6,26 +6,48 @@
     >
       <span class="text-bold text-subtitle1">Transactions</span>
     </q-banner>
-    <q-list bordered separator v-if="transactions">
-      <Transaction
-        :transaction="transaction"
-        v-for="transaction in transactions"
-        :key="transaction"
-      />
-    </q-list>
-    <span class="absolute-center" v-else>
-      <q-spinner color="primary" size="3em" />
-    </span>
+    <transition
+      appear
+      enter-active-class="animated zoomIn"
+      leave-active-class="animated zoomOut"
+    >
+      <q-infinite-scroll @load="onLoad" v-if="loggedInUser" :offset="500">
+        <q-list bordered separator v-if="transactions">
+          <Transaction
+            :transaction="transaction"
+            v-for="transaction in transactions"
+            :key="transaction"
+          />
+        </q-list>
+        <template v-slot:loading>
+          <div class="row justify-center q-my-md">
+            <q-spinner-dots color="primary" size="40px" />
+          </div>
+        </template>
+      </q-infinite-scroll>
+    </transition>
   </div>
 </template>
 
 <script>
 import Transaction from "src/components/Transaction.vue";
+import { useStore } from "vuex";
+import { computed, onUnmounted } from "vue";
 export default {
-  props: { transactions: Array },
   components: { Transaction },
   setup() {
-    return {};
+    const store = useStore();
+    onUnmounted(() => {
+      store.commit("auth/setLastDocValTrans", 0);
+      store.commit("auth/clearTransactions");
+    });
+    return {
+      loggedInUser: computed(() => store.state.auth.loggedInUser),
+      transactions: computed(() => store.state.auth.transactions),
+      async onLoad(index, done) {
+        await store.dispatch("auth/getAllTransactions", done);
+      },
+    };
   },
 };
 </script>

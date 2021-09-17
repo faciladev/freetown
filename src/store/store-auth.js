@@ -15,6 +15,11 @@ import {
   loadSettingsAPI,
   addTransactionAPI,
   getBankAPI,
+  getEarliestCommissionedAPI,
+  getCommissionedTransByQRAPI,
+  rewardWinnerAPI,
+  redeemAPI,
+  getTransactionsByStatusAPI,
 } from "src/api/userAPI";
 const state = {
   loggedIn: false,
@@ -35,10 +40,21 @@ const state = {
     percent: { morning: 0, afternoon: 0, night: 0 },
     sms: { eng: "", amh: "" },
   },
-  bank: null,
+  bank: 0,
+  nextWinner: null,
+  hasWinner: false,
+  foundTransactions: null,
+  foundUsers: null,
 };
 
 const mutations = {
+  setHasWinner(state, value) {
+    state.hasWinner = value;
+  },
+  setNextWinner(state, value) {
+    state.nextWinner = value;
+    console.log("nextWinner", state.nextWinner);
+  },
   setBank(state, value) {
     state.bank = value;
   },
@@ -51,6 +67,12 @@ const mutations = {
   },
   setLoggedIn(state, value) {
     state.loggedIn = value;
+  },
+  setFoundUsers(state, value) {
+    state.foundUsers = value;
+  },
+  setFoundTransactions(state, value) {
+    state.foundTransactions = value;
   },
   setAllTransactions(state, value) {
     if (state.transactions === null) {
@@ -71,8 +93,14 @@ const mutations = {
   clearUsers(state) {
     state.users = null;
   },
+  clearFoundUsers(state) {
+    state.foundUsers = null;
+  },
   clearTransactions(state) {
     state.transactions = null;
+  },
+  clearFoundTransactions(state) {
+    state.foundTransactions = null;
   },
   setLoggedInUser(state, value) {
     state.loggedInUser = value;
@@ -123,20 +151,77 @@ const mutations = {
 };
 
 const actions = {
-  getBank: ({ commit }) => {
+  redeemTransaction: async ({ state }, qr) => {
+    console.log("Redeem qr: ", qr);
+    return await redeemAPI(qr);
+  },
+  rewardWinner: async ({ dispatch, state }, qr) => {
+    //Update transaction's status to rewarded
+    //update business bank by deducting bank by rewardedAmount
+    await rewardWinnerAPI(
+      state.bank,
+      state.nextWinner,
+      qr,
+      state.loggedInUser.businessId
+    );
+    Notify.create("Successfully Rewarded!");
+    dispatch("getNextWinner");
+  },
+
+  getUniqueQR: async ({ state }, length) => {
+    console.log("length of qr", length);
+    const randomChars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    //Check if qr is unique
+    let unique = false;
+    while (!unique) {
+      var qr = "";
+      for (var i = 0; i < length; i++) {
+        qr += randomChars.charAt(
+          Math.floor(Math.random() * randomChars.length)
+        );
+      }
+      const found = await getCommissionedTransByQRAPI(
+        qr,
+        state.loggedInUser.businessId
+      );
+      if (!found) {
+        unique = true;
+      }
+    }
+    return qr;
+  },
+  getNextWinner: ({ commit, state }) => {
+    getEarliestCommissionedAPI(function (response) {
+      let nextWinner;
+      if (response.empty) {
+        nextWinner = null;
+      } else {
+        nextWinner = {
+          ...response.docs[0].data(),
+          id: response.docs[0].id,
+        };
+      }
+      commit("setNextWinner", nextWinner);
+      if (nextWinner) {
+        if (nextWinner.rewardAmt <= state.bank) {
+          commit("setHasWinner", true);
+        } else {
+          commit("setHasWinner", false);
+        }
+      } else {
+        commit("setHasWinner", false);
+      }
+    }, state.loggedInUser.businessId);
+  },
+
+  getBank: ({ commit, dispatch, state }) => {
     getBankAPI(function (response) {
       const business = response.data();
       commit("setBank", business.bank);
+      dispatch("getNextWinner");
       // console.log("callback", business.data());
-    });
-    // .then((res) => {
-    //   console.log("BankBal,", res.bank);
-    //   commit("setBank", res.bank);
-    // })
-    // .catch((e) => {
-    //   console.error(e);
-    //   showErrorMessage(e.message);
-    // });
+    }, state.loggedInUser.businessId);
   },
   setMinAmntStng: ({ commit }, payload) => {
     commit("setSettings", { item: "min", val: payload });
@@ -161,44 +246,53 @@ const actions = {
   },
   setSettings: async ({ commit, state }) => {
     commit("setSubmitting", true);
-    const settingId = await setSettingsAPI(state.settings);
+    const settingId = await setSettingsAPI(
+      state.settings,
+      state.loggedInUser.businessId
+    );
     commit("setSettings", { item: "id", val: settingId });
     commit("setSubmitting", false);
 
     Notify.create("Setting updated!");
     console.log("settingId", settingId);
   },
-  loadSettings: async ({ commit }) => {
-    const settings = await loadSettingsAPI();
+  loadSettings: async ({ commit, state }) => {
+    const settings = await loadSettingsAPI(state.loggedInUser.businessId);
     console.log("settingsAPI", settings);
     commit("setSettings", { item: "init", val: settings });
   },
-  async search({ commit }, payload) {
+  async search({ commit, state }, payload) {
     commit("setSearch", payload.searchTerm);
     if (payload.searchItem === "user") {
       if (payload.searchTerm) {
-        const users = await searchUsersAPI(payload.searchTerm);
-        commit("clearUsers");
-        commit("setAllUsers", users);
+        const foundUsers = await searchUsersAPI(
+          payload.searchTerm,
+          state.loggedInUser.businessId
+        );
+        commit("clearFoundUsers");
+        commit("setFoundUsers", foundUsers);
       } else {
         //Search term is empty
-        commit("clearUsers");
-        payload.router.go();
+        commit("clearFoundUsers");
+        // payload.router.go();
       }
     } else if (payload.searchItem === "transaction") {
       if (payload.searchTerm) {
-        const transactions = await searchTransactionsAPI(payload.searchTerm);
-        commit("clearTransactions");
-        commit("setAllTransactions", transactions);
+        const foundTransactions = await searchTransactionsAPI(
+          payload.searchTerm,
+          state.loggedInUser.businessId
+        );
+        commit("clearFoundTransactions");
+        commit("setFoundTransactions", foundTransactions);
       } else {
         //Search term is empty
         commit("clearTransactions");
-        payload.router.go();
+        // payload.router.go();
       }
     }
   },
-  async editUser({ commit }, user) {
-    await editUserAPI(user);
+  async editUser({ state }, user) {
+    await editUserAPI(user, state.loggedInUser.businessId);
     // commit("editUser", user);
   },
   async editTransaction({ commit }, user) {
@@ -210,16 +304,47 @@ const actions = {
   selectTransaction({ commit }, transaction) {
     commit("selectTransaction", transaction);
   },
-  async getAllTransactions({ commit, state }, done) {
-    const transactions = await getAllTransactionsAPI(
-      state.lastDocFieldTrans,
-      state.lastDocValTrans
+  //
+  async getTransactionsByStatus({ commit, state }, done, status) {
+    const transactions = await getTransactionsByStatusAPI(
+      status,
+      state.lastDocFieldSearchTrans,
+      state.lastDocValSearchTrans,
+      state.loggedInUser.businessId
     );
-    console.log("transactions", transactions);
     if (transactions.length > 0) {
       //Check if same request is fired more than once
       if (
-        state.lastDocVal !==
+        state.lastDocValSearchTrans !==
+        transactions[transactions.length - 1][state.lastDocFieldSearchTrans]
+      ) {
+        commit(
+          "setLastDocValSearchTrans",
+          transactions[transactions.length - 1][state.lastDocFieldSearchTrans]
+        );
+        commit("setAllTransactions", transactions);
+        done();
+      }
+    }
+  },
+  async getAllTransactions({ commit, state }, done) {
+    const transactions = await getAllTransactionsAPI(
+      state.lastDocFieldTrans,
+      state.lastDocValTrans,
+      state.loggedInUser.businessId
+    );
+    if (transactions.length > 0) {
+      //Check if same request is fired more than once
+      console.log("***");
+      console.log("***lastDocValTrans***");
+      console.log(state.lastDocValTrans);
+      console.log("***");
+      console.log("***");
+      console.log("***lastDocValField***");
+      console.log(state.lastDocFieldTrans);
+      console.log("***");
+      if (
+        state.lastDocValTrans !==
         transactions[transactions.length - 1][state.lastDocFieldTrans]
       ) {
         commit(
@@ -235,7 +360,11 @@ const actions = {
     }
   },
   async getAllUsers({ commit, state }, done) {
-    const users = await getAllUsersAPI(state.lastDocField, state.lastDocVal);
+    const users = await getAllUsersAPI(
+      state.lastDocField,
+      state.lastDocVal,
+      state.loggedInUser.businessId
+    );
     if (users.length > 0) {
       //Check if same request is fired more than once
       if (state.lastDocVal !== users[users.length - 1][state.lastDocField]) {
@@ -266,7 +395,7 @@ const actions = {
           console.error(e);
         }
 
-        addUserAPI(payload).then(
+        addUserAPI(payload, state.loggedInUser.businessId).then(
           (response) => {
             console.log("response", response);
             commit("setSubmitting", false);
@@ -286,7 +415,10 @@ const actions = {
     try {
       commit("setSubmitting", true);
       payload.businessId = state.loggedInUser.businessId;
-      const transactionId = await addTransactionAPI(payload);
+      const transactionId = await addTransactionAPI(
+        payload,
+        state.loggedInUser.businessId
+      );
       commit("setSubmitting", false);
       Notify.create("Successfully Registered!");
       return transactionId;
@@ -300,25 +432,26 @@ const actions = {
     auth
       .signInWithEmailAndPassword(payload.email, payload.password)
       .then((response) => {
-        console.log("response", response);
+        console.log("__1___");
         //Load user profile
-        getUserAPI(response.user).then(
-          (response) => {
-            //Set loggedInUser in LocalStorage
-            const profile = {
-              fullName: response.fullName,
-              businessId: response.businessId,
-              userType: response.userType,
-            };
-            //Set to storage because handleAuthStatechange is fired before
-            //the above api call returns
-            commit("setLoggedInUser", profile);
-            LocalStorage.set("loggedInUser", profile);
-          },
-          (error) => {
-            showErrorMessage(error.message);
-          }
-        );
+        // getUserAPI(response.user).then(
+        //   (response) => {
+        //     console.log("___2___");
+        //     //Set loggedInUser in LocalStorage
+        //     const profile = {
+        //       fullName: response.fullName,
+        //       businessId: response.businessId,
+        //       userType: response.userType,
+        //     };
+        //     //Set to storage because handleAuthStatechange is fired before
+        //     //the above api call returns
+        //     LocalStorage.set("loggedInUser", profile);
+        //     commit("setLoggedInUser", profile);
+        //   },
+        //   (error) => {
+        //     showErrorMessage(error.message);
+        //   }
+        // );
       })
       .catch((error) => {
         showErrorMessage(error.message);
@@ -328,17 +461,77 @@ const actions = {
     auth.signOut();
   },
   handleAuthStateChange({ commit, dispatch, state }) {
-    auth.onAuthStateChanged((user) => {
+    console.log("___2___");
+    auth.onAuthStateChanged(async (user) => {
+      console.log("___3___");
       Loading.hide();
       if (user) {
-        console.log("handleAuthStateChange");
+        console.log("___4___");
         // user logged in
-        commit("setLoggedIn", true);
-        LocalStorage.set("loggedIn", true);
-        console.log("loggedInUser", LocalStorage.getItem("loggedInUser"));
-        commit("setLoggedInUser", LocalStorage.getItem("loggedInUser"));
+        // console.log("loggedInUser", LocalStorage.getItem("loggedInUser"));
+        //If profile isn't in local storage save it
+        if (LocalStorage.getItem("loggedInUser") === "null") {
+          console.log("___5___");
+          getUserAPI(user).then(
+            (response) => {
+              console.log("___6___");
+              //Set loggedInUser in LocalStorage
+              const profile = {
+                fullName: response.fullName,
+                businessId: response.businessId,
+                userType: response.userType,
+              };
+              //the above api call returns
+              LocalStorage.set("loggedInUser", profile);
+              LocalStorage.set("loggedIn", true);
+              commit("setLoggedIn", true);
+              commit("setLoggedInUser", profile);
+              this.$router.push("/").catch(() => {});
+            },
+            (error) => {
+              showErrorMessage(error.message);
+            }
+          );
+        } else {
+          //Page refreshed
+          console.log("___51___");
+          console.log(
+            "__51__loggedInUser",
+            LocalStorage.getItem("loggedInUser")
+          );
+          if (LocalStorage.getItem("loggedInUser") === "null") {
+            console.log("___7___");
+            getUserAPI(response.user).then(
+              (response) => {
+                console.log("___8___");
+                //Set loggedInUser in LocalStorage
+                const profile = {
+                  fullName: response.fullName,
+                  businessId: response.businessId,
+                  userType: response.userType,
+                };
+                //the above api call returns
+                LocalStorage.set("loggedInUser", profile);
+                commit("setLoggedInUser", profile);
+                this.$router.push("/").catch(() => {});
+              },
+              (error) => {
+                showErrorMessage(error.message);
+              }
+            );
+          } else {
+            console.log("___71___");
+            console.log(
+              "__71___loggedInUser",
+              LocalStorage.getItem("loggedInUser") == "null"
+            );
 
-        this.$router.push("/").catch(() => {});
+            commit("setLoggedIn", true);
+            commit("setLoggedInUser", LocalStorage.getItem("loggedInUser"));
+            this.$router.push("/").catch(() => {});
+          }
+        }
+
         // dispatch("deals/fbReadData", null, { root: true });
       } else {
         // commit("deals/clearDeals", null, {
@@ -347,11 +540,13 @@ const actions = {
         // commit("deals/setDealsDownloaded", false, {
         //   root: true,
         // });
+        console.log("__6__");
         commit("setLoggedIn", false);
         LocalStorage.set("loggedIn", false);
         LocalStorage.set("loggedInUser", null);
         this.$router.replace("/auth");
       }
+      return user;
     });
   },
   changePassword({ dispatch, state, commit }, payload) {

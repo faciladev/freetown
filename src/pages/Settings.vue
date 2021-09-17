@@ -113,12 +113,20 @@
 </template>
 
 <script>
-import { reactive, ref, computed, toRefs } from "vue";
+import { reactive, ref, computed, onMounted } from "vue";
 import { useStore } from "vuex";
+import { LocalStorage } from "quasar";
+
 export default {
   setup() {
     const store = useStore();
     const settings = computed(() => store.state.auth.settings);
+    onMounted(async () => {
+      // await store.dispatch(
+      //   "auth/loadSettings",
+      //   await LocalStorage.getItem("loggedInUser")
+      // );
+    });
     // console.log("storeSettings", storeSettings);
     // const settings = reactive(Object.assign({}, storeSettings.value));
     // const amount = reactive(Object.assign({}, storeSettings.amount));

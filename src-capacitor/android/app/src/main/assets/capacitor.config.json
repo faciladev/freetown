@@ -1,0 +1,10 @@
+{
+  "appId": "org.sevenglory.capacitor.app",
+  "appName": "Free Town",
+  "bundledWebRuntime": false,
+  "npmClient": "yarn",
+  "webDir": "www",
+  "server": {
+    "url": "http://192.168.43.101:8081"
+  }
+}
