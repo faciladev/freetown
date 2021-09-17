@@ -94,6 +94,21 @@
                 label="የአሸናፊ መልእክት በአማርኛ"
                 :rules="[(val) => val.length > 1 || 'SMS must not be empty.']"
               />
+              <div class="text-center">
+                <p>Default Language</p>
+                <q-radio
+                  :model-value="settings.sms.defaultLang"
+                  @update:model-value="setDefaultLang"
+                  val="eng"
+                  label="English"
+                />
+                <q-radio
+                  :model-value="settings.sms.defaultLang"
+                  @update:model-value="setDefaultLang"
+                  val="amh"
+                  label="Amharic"
+                />
+              </div>
             </q-tab-panel>
           </q-tab-panels>
           <div class="text-center">
@@ -121,24 +136,13 @@ export default {
   setup() {
     const store = useStore();
     const settings = computed(() => store.state.auth.settings);
-    onMounted(async () => {
-      // await store.dispatch(
-      //   "auth/loadSettings",
-      //   await LocalStorage.getItem("loggedInUser")
-      // );
-    });
-    // console.log("storeSettings", storeSettings);
-    // const settings = reactive(Object.assign({}, storeSettings.value));
-    // const amount = reactive(Object.assign({}, storeSettings.amount));
-    // const percent = reactive(Object.assign({}, storeSettings.percent));
-    // const sms = reactive(Object.assign({}, storeSettings.sms));
 
     return {
-      // amount,
-      // percent,
-      // sms,
       submitting: computed(() => store.state.auth.submitting),
       settings,
+      setDefaultLang: (val) => {
+        store.dispatch("auth/setDefaultLangStng", val);
+      },
       setMinAmntStng: (val) => {
         store.dispatch("auth/setMinAmntStng", val);
       },

@@ -7,7 +7,7 @@
       <span class="text-bold text-subtitle1">Audit Transactions</span>
     </q-banner>
     <q-uploader
-      url="http://localhost:4444/upload"
+      url="https://freetownapp.herokuapp.com/upload"
       label="Upload Sales File"
       square
       flat
@@ -67,11 +67,7 @@ export default defineComponent({
 
     onMounted(async () => {
       store.dispatch("auth/getBank");
-      console.log(LocalStorage.getItem("loggedInUser"));
-      // await store.dispatch(
-      //   "auth/loadSettings",
-      //   await LocalStorage.getItem("loggedInUser")
-      // );
+
       store.dispatch("auth/getNextWinner");
       registerWebPlugin(SmsManager);
     });

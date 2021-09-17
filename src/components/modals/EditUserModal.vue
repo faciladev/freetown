@@ -41,6 +41,9 @@
             <q-input
               style="width: 100%"
               v-model="userToSubmit.phoneNo"
+              :rules="[
+                (val) => validatePhoneNo(val) || 'Enter valid phone number',
+              ]"
               label="Cell Phone"
               fill-mask
               mask="(###) ### - ######"
@@ -89,11 +92,25 @@ export default {
   setup(props) {
     const store = useStore();
     let userToSubmit = reactive(Object.assign({}, props.user));
+    const phone = userToSubmit.phoneNo;
+    userToSubmit.phoneNo = `(251) ${phone.substring(1, 4)}-${phone.substring(
+      4,
+      10
+    )}`;
+    const validateMask = (val) => {
+      //Doesn't have _ and has something else
+      return !/\_/.test(val) && /[^_]+/.test(val);
+    };
+    const validatePhoneNo = (val) => {
+      return validateMask(val) && /^\(251\)\s9/.test(val);
+    };
     const submitting = ref(false);
     const userTypes = ["Sales", "Auditor", "Admin"];
 
     return {
       userToSubmit,
+      validateMask,
+      validatePhoneNo,
       submitting,
       userTypes,
       isValidEmail(email) {
@@ -103,7 +120,14 @@ export default {
       },
       submitForm: async () => {
         submitting.value = true;
-        await store.dispatch("auth/editUser", userToSubmit);
+        const res = userToSubmit.phoneNo.split("-");
+        const initial = res[0].substring(6, 9);
+        const main = res[1].trim();
+        const phoneNo = `0${initial}${main}`;
+        await store.dispatch("auth/editUser", {
+          ...userToSubmit,
+          phoneNo,
+        });
         submitting.value = false;
         props.hideModal();
 

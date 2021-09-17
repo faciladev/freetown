@@ -51,11 +51,6 @@ export default defineComponent({
   setup() {
     const showModal = ref(false);
     const store = useStore();
-    // onMounted(async () => {
-    //   //Get all users
-    //   await store.dispatch("auth/getAllUsers");
-    //   console.log(store.state.auth.users);
-    // });
 
     return {
       async onLoad(index, done) {

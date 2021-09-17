@@ -3,7 +3,7 @@ import { LocalStorage } from "quasar";
 import { showErrorMessage } from "src/functions/function-show-error";
 //Get loggedInUser from localStorage
 const user = LocalStorage.getItem("loggedInUser");
-const LIMIT = 2;
+const LIMIT = 10;
 export const redeemAPI = async (qr, businessId) => {
   try {
     //Get rewarded transaction by this qr
@@ -51,8 +51,6 @@ export const getBankAPI = (callback, businessId) => {
   });
 };
 export const rewardWinnerAPI = async (bank, winner, qr, businessId) => {
-  console.log("bank", bank);
-  console.log("winner", winner);
   try {
     await db.runTransaction(async (transaction) => {
       const businessRef = db.doc(`businesses/${businessId}`);
@@ -63,9 +61,7 @@ export const rewardWinnerAPI = async (bank, winner, qr, businessId) => {
       const winnerDoc = await transaction.get(winnerRef);
       if (businessDoc.exists && winnerDoc.exists) {
         const newBalance = parseInt(businessDoc.data().bank - winner.rewardAmt);
-        console.log("oldBalance", bank);
-        console.log("newBalance", newBalance);
-        console.log("winner", winner);
+
         transaction.update(businessRef, { bank: newBalance });
         transaction.update(winnerRef, { status: "rewarded", qr });
       }
@@ -96,7 +92,6 @@ export const getCommissionedTransByQRAPI = async (qr, businessId) => {
 };
 
 export const addUserAPI = async (user, businessId) => {
-  console.log("Add user api called.");
   try {
     const docRef = await db
       .collection(`businesses/${businessId}/users`)
@@ -110,10 +105,19 @@ export const addUserAPI = async (user, businessId) => {
 
 export const addTransactionAPI = async (transaction, businessId) => {
   try {
-    const docRef = await db
-      .collection(`businesses/${businessId}/transactions`)
-      .add(transaction);
-    return docRef.id;
+    const existingDocRef = await db
+      .collectionGroup("transactions")
+      .where("businessId", "==", businessId)
+      .where("referenceNo", "==", transaction.referenceNo)
+      .get();
+    if (existingDocRef.empty) {
+      const docRef = await db
+        .collection(`businesses/${businessId}/transactions`)
+        .add(transaction);
+      return docRef.id;
+    } else {
+      throw Error("Reference Id already registered.");
+    }
   } catch (e) {
     console.error("Error adding transaction: ", e);
     showErrorMessage("Error adding transaction");
@@ -165,8 +169,6 @@ export const getAllTransactionsAPI = async (
       transactions.push({ ...doc.data(), id: doc.id });
     });
   } catch (e) {
-    console.log("explain error");
-    console.log(lastDocField, lastDocVal);
     console.error("Error getting transactions: ", e);
     showErrorMessage("Error getting transactions");
   }
@@ -214,13 +216,9 @@ export const getUserAPI = async (user) => {
 };
 
 export const editUserAPI = async (user, businessId) => {
-  console.log("editUserAPI:user", user.id);
   try {
     const docRef = db.doc(`businesses/${businessId}/users/${user.id}`);
     const res = await docRef.update(user);
-    // const docSnaps = await docRef.get();
-    console.log(res);
-    // return { ...docSnaps.data(), id: docSnaps.id };
   } catch (e) {
     console.error("Error updating user: ", e);
     showErrorMessage("Error updating user");
@@ -233,9 +231,6 @@ export const editTransactionAPI = async (transaction) => {
       `businesses/${transaction.businessId}/transactions/${transaction.id}`
     );
     const res = await docRef.update(transaction);
-    // const docSnaps = await docRef.get();
-    console.log(res);
-    // return { ...docSnaps.data(), id: docSnaps.id };
   } catch (e) {
     console.error("Error updating transaction: ", e);
     showErrorMessage("Error updating transaction");
@@ -311,7 +306,6 @@ export const setSettingsAPI = async (settings, businessId) => {
       });
       return docRef.id;
     } else {
-      console.log("New Settings");
       //If setting id is not provided
       //create new setting entry
       settingsClone["businessId"] = businessId;
@@ -319,7 +313,6 @@ export const setSettingsAPI = async (settings, businessId) => {
       const docRef = db.collection(`businesses/${businessId}/settings`).doc();
       await db.runTransaction(async (transaction) => {
         transaction.set(docRef, settingsClone);
-        console.log("docRef", docRef);
       });
       return docRef.id;
     }
@@ -335,9 +328,6 @@ export const loadSettingsAPI = async (businessId) => {
       .collectionGroup("settings")
       .where("businessId", "==", businessId)
       .get();
-    // const docSnaps = await docRef.limit(1).get();
-    console.log("Settings", docSnaps.docs[0].data());
-    console.log("SettingId", docSnaps.docs[0].id);
     if (!docSnaps.empty) {
       return { ...docSnaps.docs[0].data(), id: docSnaps.docs[0].id };
     } else {

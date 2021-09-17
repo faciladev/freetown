@@ -182,7 +182,7 @@
         <q-form @submit="submitCustomer">
           <q-card-section class="q-pt-none">
             <q-uploader
-              url="http://localhost:4444/upload"
+              url="https://freetownapp.herokuapp.com/upload"
               label="Upload Sales File"
               square
               flat

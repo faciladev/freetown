@@ -71,16 +71,16 @@ export default {
       //Doesn't have _ and has something else
       return !/\_/.test(val) && /[^_]+/.test(val);
     };
+    const validatePhoneNo = (val) => {
+      return validateMask(val) && /^\(251\)\s9/.test(val);
+    };
 
     return {
       formData,
       submitting: computed(() => store.state.auth.submitting),
       userTypes,
-
       validateMask,
-      validatePhoneNo: (val) => {
-        return validateMask(val) && /^\(251\)\s9/.test(val);
-      },
+      validatePhoneNo,
       isValidEmail(email) {
         const re =
           /^(([^<>()[\]\\.,;:\s@"]+(\.[^<>()[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;

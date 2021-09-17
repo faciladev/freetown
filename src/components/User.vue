@@ -56,7 +56,6 @@ export default {
 
     const editModal = ref(false);
     const showEditModal = () => {
-      console.log("showEditModal");
       editModal.value = true;
     };
     return {
@@ -66,7 +65,6 @@ export default {
         editModal.value = false;
       },
       selectUser: (user) => {
-        console.log(user.uid);
         store.dispatch("auth/selectUser", user);
         showEditModal();
       },

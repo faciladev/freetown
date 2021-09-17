@@ -48,7 +48,6 @@ export default {
 
     const editModal = ref(false);
     const showEditModal = () => {
-      console.log("showEditModal");
       editModal.value = true;
     };
     return {
@@ -58,7 +57,6 @@ export default {
         editModal.value = false;
       },
       selectTransaction: (transaction) => {
-        console.log(transaction.uid);
         store.dispatch("auth/selectTransaction", transaction);
         showEditModal();
       },

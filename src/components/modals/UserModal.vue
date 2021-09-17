@@ -40,6 +40,9 @@
           <div class="row q-mb-sm">
             <q-input
               style="width: 100%"
+              :rules="[
+                (val) => validatePhoneNo(val) || 'Enter valid phone number',
+              ]"
               v-model="formData.phoneNo"
               label="Cell Phone"
               fill-mask
@@ -85,14 +88,23 @@ export default {
       fullName: "",
       email: "",
       userType: "",
-      phoneNo: "251932508181",
+      phoneNo: "2519",
       status: "active",
       uid: null,
       businessId: null,
     });
+    const validateMask = (val) => {
+      //Doesn't have _ and has something else
+      return !/\_/.test(val) && /[^_]+/.test(val);
+    };
+    const validatePhoneNo = (val) => {
+      return validateMask(val) && /^\(251\)\s9/.test(val);
+    };
 
     return {
       formData,
+      validateMask,
+      validatePhoneNo,
       submitting: computed(() => store.state.auth.submitting),
       userTypes,
       isValidEmail(email) {
@@ -101,7 +113,14 @@ export default {
         return re.test(String(email).toLowerCase());
       },
       submitForm: async () => {
-        store.dispatch("auth/registerUser", formData);
+        const res = formData.phoneNo.split("-");
+        const initial = res[0].substring(6, 9);
+        const main = res[1].trim();
+        const phoneNo = `0${initial}${main}`;
+        store.dispatch("auth/registerUser", {
+          ...formData,
+          phoneNo,
+        });
       },
     };
   },

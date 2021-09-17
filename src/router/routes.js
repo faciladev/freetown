@@ -4,7 +4,7 @@ const routes = [
     component: () => import("layouts/MainLayout.vue"),
     children: [
       // { path: "", component: () => import("src/pages/Transactions.vue") },
-      { path: "/", component: () => import("src/pages/ReportsPage.vue") },
+      { path: "/", component: () => import("src/pages/HomePage.vue") },
       {
         path: "/transactions",
         component: () => import("src/pages/TransactionPage.vue"),
@@ -14,7 +14,10 @@ const routes = [
       { path: "/reward", component: () => import("pages/RewardPage.vue") },
       { path: "/auth", component: () => import("pages/Auth.vue") },
       { path: "/users", component: () => import("src/pages/UsersPage.vue") },
-      { path: "/settings", component: () => import("pages/Settings.vue") },
+      {
+        path: "/settings",
+        component: () => import("src/pages/SettingsPage.vue"),
+      },
       // { path: "/reports", component: () => import("pages/ReportsPage.vue") },
       {
         path: "/change-password",

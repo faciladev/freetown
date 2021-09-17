@@ -10,10 +10,9 @@ export default defineComponent({
   setup() {
     const store = useStore();
     const loggedInUser = computed(() => store.state.auth.loggedInUser);
-    // const loadSettings = (loggedInUser) => {
-    // if (loggedInUser) store.dispatch("auth/loadSettings");
+    //Watch state
     watch(loggedInUser, (value) => {
-      console.log("***watched***", value);
+      //only load setting when user is logged in
       if (value) {
         store.dispatch("auth/loadSettings", loggedInUser);
       }
@@ -21,12 +20,9 @@ export default defineComponent({
     // };
     onMounted(async () => {
       store.dispatch("auth/handleAuthStateChange");
-      // loadSettings(loggedInUser);
     });
 
-    return {
-      // loggedInUser: computed(() => store.state.auth.loggedInUser),
-    };
+    return {};
   },
 });
 </script>

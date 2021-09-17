@@ -154,9 +154,7 @@ export default defineComponent({
     return {
       securedLinks,
       displayName: (loggedInUser) => {
-        console.log("loGGedINNNN", loggedInUser);
         let displayName = "";
-        console.log(loggedInUser);
         if (!loggedInUser.fullName) return "";
 
         if (loggedInUser.fullName.indexOf(" ") === -1) {
