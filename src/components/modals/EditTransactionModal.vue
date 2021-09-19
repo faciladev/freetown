@@ -10,7 +10,6 @@
         <q-form @submit="submitForm">
           <div class="row q-mb-sm">
             <q-input
-              disable
               style="width: 100%"
               :rules="[
                 (val) => validateMask(val) || 'Enter valid phone number',
