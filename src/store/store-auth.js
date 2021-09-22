@@ -155,17 +155,12 @@ const mutations = {
 
 const actions = {
   redeemTransaction: async ({ state }, qr) => {
-    return await redeemAPI(qr);
+    return await redeemAPI(qr, state.loggedInUser);
   },
   rewardWinner: async ({ dispatch, state }, qr) => {
     //Update transaction's status to rewarded
     //update business bank by deducting bank by rewardedAmount
-    await rewardWinnerAPI(
-      state.bank,
-      state.nextWinner,
-      qr,
-      state.loggedInUser.businessId
-    );
+    await rewardWinnerAPI(state.bank, state.nextWinner, qr, state.loggedInUser);
     Notify.create("Successfully Rewarded!");
     dispatch("getNextWinner");
   },

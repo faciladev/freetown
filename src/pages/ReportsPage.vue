@@ -90,6 +90,7 @@ export default defineComponent({
         field: "rewardAmt",
       },
       { name: "status", align: "center", label: "Status", field: "status" },
+
       { name: "phoneNo", align: "right", label: "Phone No.", field: "phoneNo" },
     ];
     const logOptions = ["All", "Commissioned", "Rewarded", "Redeemed"];

@@ -4,9 +4,10 @@ import { showErrorMessage } from "src/functions/function-show-error";
 //Get loggedInUser from localStorage
 const user = LocalStorage.getItem("loggedInUser");
 const LIMIT = 10;
-export const redeemAPI = async (qr, businessId) => {
+export const redeemAPI = async (qr, user) => {
   try {
     //Get rewarded transaction by this qr
+    const businessId = user.businessId;
     const docRef = db.collectionGroup("transactions");
     const docSnaps = await docRef
       .where("businessId", "==", businessId)
@@ -29,12 +30,16 @@ export const redeemAPI = async (qr, businessId) => {
       );
       const logDate = new Date(logTime);
       logDate.setHours(0, 0, 0, 0);
-      db.collection(`businesses/${businessId}/logs`).doc({
-        ...docSnaps.docs[0].data(),
-        status: "redeemed",
-        logTime: firebase.firestore.Timestamp.fromDate(logTime),
-        logDate: firebase.firestore.Timestamp.fromDate(logDate),
-      });
+      await db
+        .collection(`businesses/${businessId}/logs`)
+        .doc()
+        .set({
+          ...docSnaps.docs[0].data(),
+          user,
+          status: "redeemed",
+          logTime: firebase.firestore.Timestamp.fromDate(logTime),
+          logDate: firebase.firestore.Timestamp.fromDate(logDate),
+        });
       //return transaction
       return { ...docSnaps.docs[0].data(), id: docSnaps.docs[0].id };
     }
@@ -64,8 +69,9 @@ export const getBankAPI = (callback, businessId) => {
       .onSnapshot({ includeMetadataChanges: true }, callback);
   });
 };
-export const rewardWinnerAPI = async (bank, winner, qr, businessId) => {
+export const rewardWinnerAPI = async (bank, winner, qr, user) => {
   try {
+    const businessId = user.businessId;
     await db.runTransaction(async (transaction) => {
       const businessRef = db.doc(`businesses/${businessId}`);
       const logRef = db.collection(`businesses/${businessId}/logs`).doc();
@@ -91,6 +97,7 @@ export const rewardWinnerAPI = async (bank, winner, qr, businessId) => {
         delete transWithNoId.id;
         transaction.set(logRef, {
           ...transWithNoId,
+          user,
           status: "rewarded",
           logTime: firebase.firestore.Timestamp.fromDate(logTime),
           logDate: firebase.firestore.Timestamp.fromDate(logDate),
