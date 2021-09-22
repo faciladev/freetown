@@ -21,6 +21,20 @@ export const redeemAPI = async (qr, businessId) => {
       await db.doc(`businesses/${businessId}/transactions/${transId}`).update({
         status: "redeemed",
       });
+      //Add Log
+      const logTime = new Date(
+        new Date().toLocaleString("en-us", {
+          timeZone: "Africa/Addis_Ababa",
+        })
+      );
+      const logDate = new Date(logTime);
+      logDate.setHours(0, 0, 0, 0);
+      db.collection(`businesses/${businessId}/logs`).doc({
+        ...docSnaps.docs[0].data(),
+        status: "redeemed",
+        logTime: firebase.firestore.Timestamp.fromDate(logTime),
+        logDate: firebase.firestore.Timestamp.fromDate(logDate),
+      });
       //return transaction
       return { ...docSnaps.docs[0].data(), id: docSnaps.docs[0].id };
     }
@@ -54,6 +68,7 @@ export const rewardWinnerAPI = async (bank, winner, qr, businessId) => {
   try {
     await db.runTransaction(async (transaction) => {
       const businessRef = db.doc(`businesses/${businessId}`);
+      const logRef = db.collection(`businesses/${businessId}/logs`).doc();
       const winnerRef = db.doc(
         `businesses/${businessId}/transactions/${winner.id}`
       );
@@ -64,6 +79,22 @@ export const rewardWinnerAPI = async (bank, winner, qr, businessId) => {
 
         transaction.update(businessRef, { bank: newBalance });
         transaction.update(winnerRef, { status: "rewarded", qr });
+        //Add Log
+        const logTime = new Date(
+          new Date().toLocaleString("en-us", {
+            timeZone: "Africa/Addis_Ababa",
+          })
+        );
+        const logDate = new Date(logTime);
+        logDate.setHours(0, 0, 0, 0);
+        const transWithNoId = Object.assign({}, winner);
+        delete transWithNoId.id;
+        transaction.set(logRef, {
+          ...transWithNoId,
+          status: "rewarded",
+          logTime: firebase.firestore.Timestamp.fromDate(logTime),
+          logDate: firebase.firestore.Timestamp.fromDate(logDate),
+        });
       }
     });
   } catch (e) {
@@ -103,7 +134,8 @@ export const addUserAPI = async (user, businessId) => {
   }
 };
 
-export const addTransactionAPI = async (transaction, businessId) => {
+export const addTransactionAPI = async (transaction, loggedInUser) => {
+  const businessId = loggedInUser.businessId;
   try {
     const existingDocRef = await db
       .collectionGroup("transactions")
@@ -113,7 +145,7 @@ export const addTransactionAPI = async (transaction, businessId) => {
     if (existingDocRef.empty) {
       const docRef = await db
         .collection(`businesses/${businessId}/transactions`)
-        .add(transaction);
+        .add({ ...transaction, user: loggedInUser });
       return docRef.id;
     } else {
       throw Error("Reference Id already registered.");
@@ -123,31 +155,158 @@ export const addTransactionAPI = async (transaction, businessId) => {
     showErrorMessage("Error adding transaction");
   }
 };
-export const getTransactionsByStatusAPI = async (
-  statusTerm,
-  lastDocField,
-  lastDocVal,
-  businessId
+export const getTransactionsLogAPI = async (
+  businessId,
+  { log, user, date }
 ) => {
-  let transactions = [];
+  let transactionLogs = [];
   try {
-    const docRef = db.collectionGroup("transactions");
-    const docSnaps = await docRef
-      .where("businessId", "==", businessId)
-      .where("status", "==", statusTerm)
-      .orderBy(lastDocField, "asc")
-      .startAfter(lastDocVal)
-      .limit(LIMIT)
-      .get();
+    let docSnaps = null;
+    const docRef = db.collectionGroup("logs");
+
+    //Three cases
+    //all 3 exist(log, user, date)
+    //log and date exist
+    //user and date exist
+
+    if (log && user && date) {
+      if (typeof date == "string") {
+        docSnaps = await docRef
+          .where("businessId", "==", businessId)
+          .where("status", "==", log)
+          .where("user.fullName", "==", user)
+          .where(
+            "logDate",
+            "==",
+            firebase.firestore.Timestamp.fromDate(new Date(date))
+          )
+          .orderBy("logTime", "desc")
+
+          .get();
+      } else {
+        docSnaps = await docRef
+          .where("businessId", "==", businessId)
+          .where("status", "==", log)
+          .where("user.fullName", "==", user)
+          .where(
+            "logDate",
+            "<=",
+            firebase.firestore.Timestamp.fromDate(new Date(date.to))
+          )
+          .where(
+            "logDate",
+            ">=",
+            firebase.firestore.Timestamp.fromDate(new Date(date.from))
+          )
+          .orderBy("logDate", "desc")
+          .orderBy("logTime", "desc")
+          .get();
+      }
+    } else if (log && date) {
+      if (typeof date == "string") {
+        docSnaps = await docRef
+          .where("businessId", "==", businessId)
+          .where("status", "==", log)
+          .where(
+            "logDate",
+            "==",
+            firebase.firestore.Timestamp.fromDate(new Date(date))
+          )
+          .orderBy("logTime", "desc")
+
+          .get();
+      } else {
+        docSnaps = await docRef
+          .where("businessId", "==", businessId)
+          .where("status", "==", log)
+          .where(
+            "logDate",
+            "<=",
+            firebase.firestore.Timestamp.fromDate(new Date(date.to))
+          )
+          .where(
+            "logDate",
+            ">=",
+            firebase.firestore.Timestamp.fromDate(new Date(date.from))
+          )
+          .orderBy("logDate", "desc")
+          .orderBy("logTime", "desc")
+          .get();
+      }
+    } else if (user && date) {
+      if (typeof date == "string") {
+        docSnaps = await docRef
+          .where("businessId", "==", businessId)
+          .where("user.fullName", "==", user)
+          .where(
+            "logDate",
+            "==",
+            firebase.firestore.Timestamp.fromDate(new Date(date))
+          )
+          .orderBy("logTime", "desc")
+          .get();
+      } else {
+        docSnaps = await docRef
+          .where("businessId", "==", businessId)
+          .where("user.fullName", "==", user)
+          .where(
+            "logDate",
+            "<=",
+            firebase.firestore.Timestamp.fromDate(new Date(date.to))
+          )
+          .where(
+            "logDate",
+            ">=",
+            firebase.firestore.Timestamp.fromDate(new Date(date.from))
+          )
+          .orderBy("logDate", "desc")
+          .orderBy("logTime", "desc")
+          .get();
+      }
+    } else if (date) {
+      if (typeof date == "string") {
+        docSnaps = await docRef
+          .where("businessId", "==", businessId)
+          .where(
+            "logDate",
+            "==",
+            firebase.firestore.Timestamp.fromDate(new Date(date))
+          )
+          .orderBy("logTime", "desc")
+
+          .get();
+      } else {
+        docSnaps = await docRef
+          .where("businessId", "==", businessId)
+          .where(
+            "logDate",
+            "<=",
+            firebase.firestore.Timestamp.fromDate(new Date(date.to))
+          )
+          .where(
+            "logDate",
+            ">=",
+            firebase.firestore.Timestamp.fromDate(new Date(date.from))
+          )
+          .orderBy("logDate", "desc")
+          .orderBy("logTime", "desc")
+          .get();
+      }
+    }
+
+    // .where("status", "==", statusTerm)
+    // .orderBy(lastDocField, "asc")
+    // .startAfter(lastDocVal)
+    // docSnaps = await docRef.limit(LIMIT).get();
 
     docSnaps.forEach((doc) => {
-      transactions.push({ ...doc.data(), id: doc.id });
+      transactionLogs.push({ ...doc.data(), id: doc.id });
     });
   } catch (e) {
-    console.error("Error getting transactions by status: ", e);
-    showErrorMessage("Error getting transactions by status");
+    console.error("Error getting transaction logs: ", e);
+    showErrorMessage("Error getting transaction logs");
   }
-  return transactions;
+  return transactionLogs;
 };
 
 export const getAllTransactionsAPI = async (

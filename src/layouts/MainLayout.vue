@@ -102,6 +102,13 @@ const linksList = [
     icon: "check",
     link: "#/audit",
   },
+
+  {
+    title: "Reports",
+    caption: "Report View",
+    icon: "calendar_view_month",
+    link: "#/reports",
+  },
   {
     title: "Settings",
     caption: "Settings",
@@ -140,7 +147,15 @@ export default defineComponent({
     const securityRule = {
       Sales: ["Home", "Transactions", "Redeem"],
       Auditor: ["Home", "Transactions", "Redeem", "Audit"],
-      Admin: ["Home", "Transactions", "Redeem", "Audit", "Settings", "Users"],
+      Admin: [
+        "Home",
+        "Transactions",
+        "Redeem",
+        "Audit",
+        "Reports",
+        "Settings",
+        "Users",
+      ],
     };
     const securedLinks = (loggedInUser) => {
       return loggedInUser && loggedInUser.userType

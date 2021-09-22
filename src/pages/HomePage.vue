@@ -28,6 +28,14 @@
         icon="check"
       />
       <q-btn
+        v-if="hasPermission('Reports', loggedInUser)"
+        to="/reports"
+        class="q-ma-sm"
+        padding="10%"
+        color="secondary"
+        icon="calendar_view_month"
+      />
+      <q-btn
         v-if="hasPermission('Settings', loggedInUser)"
         to="/settings"
         class="q-ma-sm"
@@ -60,7 +68,15 @@ export default defineComponent({
     const securityRule = {
       Sales: ["Home", "Transactions", "Redeem"],
       Auditor: ["Home", "Transactions", "Redeem", "Audit"],
-      Admin: ["Home", "Transactions", "Redeem", "Audit", "Settings", "Users"],
+      Admin: [
+        "Home",
+        "Transactions",
+        "Redeem",
+        "Audit",
+        "Reports",
+        "Settings",
+        "Users",
+      ],
     };
     const hasPermission = (link, loggedInUser) => {
       return loggedInUser && loggedInUser.userType

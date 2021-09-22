@@ -19,7 +19,7 @@ import {
   getCommissionedTransByQRAPI,
   rewardWinnerAPI,
   redeemAPI,
-  getTransactionsByStatusAPI,
+  getTransactionsLogAPI,
 } from "src/api/userAPI";
 const state = {
   loggedIn: false,
@@ -45,6 +45,7 @@ const state = {
   hasWinner: false,
   foundTransactions: null,
   foundUsers: null,
+  transactionLogs: null,
 };
 
 const mutations = {
@@ -78,6 +79,13 @@ const mutations = {
     } else {
       state.transactions.push(...value);
     }
+  },
+  setTransactionLog(state, value) {
+    state.transactionLogs = value;
+    // if (state.transactionLogs === null) {
+    // } else {
+    //   state.transactionLogs.push(...value);
+    // }
   },
   setAllUsers(state, value) {
     if (state.users === null) {
@@ -345,6 +353,13 @@ const actions = {
       done(true);
     }
   },
+  async getTransactionLogs({ commit, state }, payload) {
+    const logs = await getTransactionsLogAPI(
+      state.loggedInUser.businessId,
+      payload
+    );
+    commit("setTransactionLog", logs);
+  },
   async getAllUsers({ commit, state }, done) {
     const users = await getAllUsersAPI(
       state.lastDocField,
@@ -356,11 +371,15 @@ const actions = {
       if (state.lastDocVal !== users[users.length - 1][state.lastDocField]) {
         commit("setLastDocVal", users[users.length - 1][state.lastDocField]);
         commit("setAllUsers", users);
-        done();
+        if (done) {
+          done();
+        }
       }
     } else {
       //End of result set
-      done(true);
+      if (done) {
+        done(true);
+      }
     }
   },
   registerUser({ state, commit }, payload) {
@@ -400,7 +419,7 @@ const actions = {
       payload.businessId = state.loggedInUser.businessId;
       const transactionId = await addTransactionAPI(
         payload,
-        state.loggedInUser.businessId
+        state.loggedInUser
       );
       commit("setSubmitting", false);
       if (transactionId) {

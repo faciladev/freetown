@@ -7,7 +7,7 @@
       <span class="text-bold text-subtitle1">Audit Transactions</span>
     </q-banner>
     <q-uploader
-      url="https://freetownapp.herokuapp.com/upload"
+      url="http://localhost:4444/upload"
       label="Upload Sales File"
       square
       flat
@@ -63,7 +63,10 @@ export default defineComponent({
     const submitting = ref(false);
     const nextWinner = computed(() => store.state.auth.nextWinner);
     const hasWinner = computed(() => store.state.auth.hasWinner);
-    const rewardSMSText = computed(() => store.state.auth.settings.sms.eng);
+    const rewardSMSText = computed(
+      () =>
+        store.state.auth.settings.sms[store.state.auth.settings.sms.defaultLang]
+    );
 
     onMounted(async () => {
       store.dispatch("auth/getBank");
