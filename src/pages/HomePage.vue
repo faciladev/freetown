@@ -75,6 +75,7 @@ export default defineComponent({
         "Audit",
         "Reports",
         "Settings",
+        "Reports",
         "Users",
       ],
     };

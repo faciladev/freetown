@@ -7,7 +7,7 @@
       <span class="text-bold text-subtitle1">Audit Transactions</span>
     </q-banner>
     <q-uploader
-      url="http://localhost:4444/upload"
+      url="https://freetownapp.herokuapp.com/upload"
       label="Upload Sales File"
       square
       flat
