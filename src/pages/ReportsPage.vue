@@ -4,6 +4,7 @@
       <!-- <div class="column">-->
       <div class="column">
         <q-select
+          :disable="loading"
           class="q-ml-lg"
           style="width: 150px"
           :model-value="log"
@@ -14,6 +15,7 @@
       </div>
       <div class="column">
         <q-select
+          :disable="loading"
           class="q-ml-lg"
           style="width: 150px"
           :model-value="user"
@@ -23,7 +25,7 @@
         />
       </div>
       <div class="q-ml-lg column date-picker">
-        <q-btn icon="event" round color="primary">
+        <q-btn icon="event" round color="primary" :disable="loading">
           <q-popup-proxy transition-show="scale" transition-hide="scale">
             <q-date v-model="proxyDate" range>
               <div class="row items-center justify-end q-gutter-sm">
@@ -50,7 +52,13 @@
           >Transaction History {{ getLogTime() }}</span
         >
       </q-banner>
-      <q-table v-if="rows" :columns="columns" :rows="rows" row-key="id" />
+      <q-table
+        :loading="loading"
+        v-if="rows"
+        :columns="columns"
+        :rows="rows"
+        row-key="id"
+      />
     </div>
   </q-page>
 </template>
@@ -96,10 +104,11 @@ export default defineComponent({
     const logOptions = ["All", "Commissioned", "Rewarded", "Redeemed"];
 
     const store = useStore();
-    const date = ref(new Date().toLocaleString().split(",")[0]);
+    const date = ref(dateUtil.formatDate(new Date(), "MM/DD/YYYY"));
     const proxyDate = ref(null);
     const user = ref("All");
     const log = ref("All");
+    const loading = ref(false);
     const rows = computed(() => {
       if (store.state.auth.transactionLogs) {
         return store.state.auth.transactionLogs.map((log) => {
@@ -126,19 +135,23 @@ export default defineComponent({
       //Watch users only to execute computed property's inside
     });
 
-    const getTransactionLogs = () => {
-      store.dispatch("auth/getTransactionLogs", {
+    const getTransactionLogs = async () => {
+      loading.value = true;
+      await store.dispatch("auth/getTransactionLogs", {
         log: log.value == "All" ? null : log.value.toLowerCase(),
         user: user.value == "All" ? null : user.value,
         date: date.value,
       });
+      loading.value = false;
     };
     onMounted(() => {
       store.dispatch("auth/getAllUsers");
+      console.log("onMounted date", date.value);
       getTransactionLogs();
     });
 
     return {
+      loading,
       getTransactionLogs,
       rows,
       columns,
@@ -166,10 +179,12 @@ export default defineComponent({
         }
       },
       updateProxy() {
+        console.log("date.value", date.value);
         proxyDate.value = date.value;
       },
 
       save() {
+        console.log("proxyDate.value", proxyDate.value);
         date.value = proxyDate.value;
         getTransactionLogs();
       },

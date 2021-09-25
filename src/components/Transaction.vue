@@ -8,7 +8,10 @@
       class="highlightable"
       v-html="$options.filters.searchHighlight(transaction.phoneNo, search)"
     ></q-item-section>
-    <q-item-section side>
+    <q-item-section
+      side
+      v-if="loggedInUser && loggedInUser.userType == 'Admin'"
+    >
       <div class="row">
         <q-btn
           @click.stop="selectTransaction(transaction)"
@@ -52,6 +55,7 @@ export default {
     };
     return {
       search: computed(() => store.state.auth.search),
+      loggedInUser: computed(() => store.state.auth.loggedInUser),
       editModal,
       hideEditModal: () => {
         editModal.value = false;

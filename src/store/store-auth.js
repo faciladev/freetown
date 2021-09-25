@@ -39,6 +39,14 @@ const state = {
     amount: { min: 0, max: 0 },
     percent: { morning: 0, afternoon: 0, night: 0 },
     sms: { eng: "", amh: "" },
+    time: {
+      morningStart: "0",
+      morningEnd: 0,
+      afternoonStart: 0,
+      afternoonEnd: 0,
+      nightStart: 0,
+      nightEnd: 0,
+    },
   },
   bank: 0,
   nextWinner: null,
@@ -149,6 +157,18 @@ const mutations = {
       state.settings = payload.val;
     } else if (payload.item == "lang") {
       state.settings.sms.defaultLang = payload.val;
+    } else if (payload.item == "morningStart") {
+      state.settings.time.morningStart = payload.val;
+    } else if (payload.item == "morningEnd") {
+      state.settings.time.morningEnd = payload.val;
+    } else if (payload.item == "afternoonStart") {
+      state.settings.time.afternoonStart = payload.val;
+    } else if (payload.item == "afternoonEnd") {
+      state.settings.time.afternoonEnd = payload.val;
+    } else if (payload.item == "nightStart") {
+      state.settings.time.nightStart = payload.val;
+    } else if (payload.item == "nightEnd") {
+      state.settings.time.nightEnd = payload.val;
     }
   },
 };
@@ -241,6 +261,24 @@ const actions = {
   },
   setAmhSMSStng: ({ commit }, payload) => {
     commit("setSettings", { item: "smsAmh", val: payload });
+  },
+  setMorningStart: ({ commit }, payload) => {
+    commit("setSettings", { item: "morningStart", val: payload });
+  },
+  setMorningEnd: ({ commit }, payload) => {
+    commit("setSettings", { item: "morningEnd", val: payload });
+  },
+  setAfternoonStart: ({ commit }, payload) => {
+    commit("setSettings", { item: "afternoonStart", val: payload });
+  },
+  setAfternoonEnd: ({ commit }, payload) => {
+    commit("setSettings", { item: "afternoonEnd", val: payload });
+  },
+  setNightStart: ({ commit }, payload) => {
+    commit("setSettings", { item: "nightStart", val: payload });
+  },
+  setNightEnd: ({ commit }, payload) => {
+    commit("setSettings", { item: "nightEnd", val: payload });
   },
   setSettings: async ({ commit, state }) => {
     commit("setSubmitting", true);

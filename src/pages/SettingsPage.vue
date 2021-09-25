@@ -18,11 +18,71 @@
           >
             <q-tab name="amount" label="Amount" />
             <q-tab name="percentage" label="Percentage" />
+            <q-tab name="time" label="Time" />
             <q-tab name="template" label="SMS" />
           </q-tabs>
 
           <q-separator />
           <q-tab-panels v-model="tab" animated>
+            <q-tab-panel name="time">
+              <q-input
+                :model-value="settings.time.morningStart"
+                @update:model-value="setMorningStart"
+                label="Morning Start"
+                :rules="[
+                  (val) =>
+                    validateNumber(val) || 'Please enter a valid number.',
+                ]"
+              />
+              <q-input
+                :model-value="settings.time.morningEnd"
+                @update:model-value="setMorningEnd"
+                type="number"
+                label="Morning End"
+                :rules="[
+                  (val) =>
+                    validateNumber(val) || 'Please enter a valid number.',
+                ]"
+              />
+              <q-input
+                :model-value="settings.time.afternoonStart"
+                @update:model-value="setAfternoonStart"
+                type="number"
+                label="Afternoon Start"
+                :rules="[
+                  (val) =>
+                    validateNumber(val) || 'Please enter a valid number.',
+                ]"
+              /><q-input
+                :model-value="settings.time.afternoonEnd"
+                @update:model-value="setAfternoonEnd"
+                type="number"
+                label="Afternoon End"
+                :rules="[
+                  (val) =>
+                    validateNumber(val) || 'Please enter a valid number.',
+                ]"
+              />
+              <q-input
+                :model-value="settings.time.nightStart"
+                @update:model-value="setNightStart"
+                type="number"
+                label="Night Start"
+                :rules="[
+                  (val) =>
+                    validateNumber(val) || 'Please enter a valid number.',
+                ]"
+              /><q-input
+                :model-value="settings.time.nightEnd"
+                @update:model-value="setNightEnd"
+                type="number"
+                label="Night End"
+                :rules="[
+                  (val) =>
+                    validateNumber(val) || 'Please enter a valid number.',
+                ]"
+              />
+            </q-tab-panel>
             <q-tab-panel name="amount">
               <q-input
                 :model-value="settings.amount.min"
@@ -163,6 +223,24 @@ export default {
       },
       setAmhSMSStng: (val) => {
         store.dispatch("auth/setAmhSMSStng", val);
+      },
+      setMorningStart: (val) => {
+        store.dispatch("auth/setMorningStart", val);
+      },
+      setMorningEnd: (val) => {
+        store.dispatch("auth/setMorningEnd", val);
+      },
+      setAfternoonStart: (val) => {
+        store.dispatch("auth/setAfternoonStart", val);
+      },
+      setAfternoonEnd: (val) => {
+        store.dispatch("auth/setAfternoonEnd", val);
+      },
+      setNightStart: (val) => {
+        store.dispatch("auth/setNightStart", val);
+      },
+      setNightEnd: (val) => {
+        store.dispatch("auth/setNightEnd", val);
       },
       tab: ref("amount"),
       validateNumber: (val) => {
