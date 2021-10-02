@@ -18,7 +18,7 @@
     />
     <div class="absolute-center">
       <q-btn
-        :disable="!hasWinner"
+        :disable="!canSend"
         @click="showReward = true"
         icon="account_balance"
         flat
@@ -40,7 +40,7 @@
 </template>
 
 <script>
-import { defineComponent, ref, onMounted, computed } from "vue";
+import { defineComponent, ref, onMounted, computed, watch } from "vue";
 import { useStore } from "vuex";
 import RewardModal from "src/components/modals/RewardModal.vue";
 import { LocalStorage, Notify, useQuasar } from "quasar";
@@ -57,12 +57,24 @@ export default defineComponent({
 
   setup() {
     const $q = useQuasar();
-
     const store = useStore();
     const showReward = ref(false);
     const submitting = ref(false);
+    const canSend = ref(false);
     const nextWinner = computed(() => store.state.auth.nextWinner);
     const hasWinner = computed(() => store.state.auth.hasWinner);
+    const loggedInUser = computed(() => store.state.auth.loggedInUser);
+
+    watch(hasWinner, (value) => {
+      if (
+        value &&
+        loggedInUser.value &&
+        loggedInUser.value.userType == "Admin"
+      ) {
+        canSend.value = true;
+      }
+    });
+
     const rewardSMSText = computed(
       () =>
         store.state.auth.settings.sms[store.state.auth.settings.sms.defaultLang]
@@ -76,6 +88,8 @@ export default defineComponent({
     });
 
     return {
+      loggedInUser,
+      canSend,
       submitting,
       reward: async () => {
         if ($q.platform.is.mobile) {

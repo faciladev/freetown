@@ -28,6 +28,7 @@
               <q-input
                 :model-value="settings.time.morningStart"
                 @update:model-value="setMorningStart"
+                type="number"
                 label="Morning Start"
                 :rules="[
                   (val) =>
