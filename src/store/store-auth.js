@@ -329,8 +329,8 @@ const actions = {
     await editUserAPI(user, state.loggedInUser.businessId);
     // commit("editUser", user);
   },
-  async editTransaction({ commit }, user) {
-    await editTransactionAPI(user);
+  async editTransaction({ commit }, transaction) {
+    await editTransactionAPI(transaction);
   },
   selectUser({ commit }, user) {
     commit("selectUser", user);

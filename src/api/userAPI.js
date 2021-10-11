@@ -438,11 +438,13 @@ export const searchTransactionsAPI = async (searchTerm, businessId) => {
     const [referenceNoSnapshot, phoneNoSnapshot, statusSnapshot] =
       await Promise.all([referenceNo, phoneNo]);
 
-    const referenceNoArray = referenceNoSnapshot.docs.map((item) =>
-      item.data()
-    );
+    const referenceNoArray = referenceNoSnapshot.docs.map((item) => {
+      return { ...item.data(), id: item.id };
+    });
 
-    const phoneNoArray = phoneNoSnapshot.docs.map((item) => item.data());
+    const phoneNoArray = phoneNoSnapshot.docs.map((item) => {
+      return { ...item.data(), id: item.id };
+    });
 
     const transactionsArray = referenceNoArray.concat(phoneNoArray);
     return transactionsArray;

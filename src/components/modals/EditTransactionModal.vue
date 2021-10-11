@@ -90,6 +90,7 @@ export default {
         // const initial = res[0].substring(6, 9);
         // const main = res[1].trim();
         // const phoneNo = `0${initial}${main}`;
+        // console.log("transactionToSubmit", transactionToSubmit);
         await store.dispatch("auth/editTransaction", transactionToSubmit);
         submitting.value = false;
         props.hideModal();
