@@ -114,6 +114,7 @@ export default defineComponent({
         return store.state.auth.transactionLogs.map((log) => {
           return {
             ...log,
+            time: dateUtil.formatDate(log.time.toDate(), "MM/DD/YYYY H:m"),
             logTime: dateUtil.formatDate(
               log.logTime.toDate(),
               "MM/DD/YYYY H:m"

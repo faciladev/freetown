@@ -56,7 +56,7 @@ export const getEarliestCommissionedAPI = (callback, businessId) => {
     const unsubscribe = docRef
       .where("businessId", "==", businessId)
       .where("status", "==", "commissioned")
-      .orderBy("time", "asc")
+      .orderBy("time")
       .limit(1)
       .onSnapshot({ includeMetadataChanges: true }, callback);
   });

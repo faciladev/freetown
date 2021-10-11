@@ -44,7 +44,7 @@
 import { defineComponent, ref, onMounted, computed } from "vue";
 import { useStore } from "vuex";
 import RewardModal from "src/components/modals/RewardModal.vue";
-import { LocalStorage, Notify, useQuasar } from "quasar";
+import { LocalStorage, date as dateUtil, useQuasar } from "quasar";
 import {
   Plugins,
   registerWebPlugin,
@@ -87,9 +87,14 @@ export default defineComponent({
           let text = rewardSMSText.value;
           text = text.replace(/\$amount/, nextWinner.value.rewardAmt);
           text = text.replace(/\$ticket/, qr);
-          text = text.replace(/\$time/, nextWinner.value.time);
-          // const numbers = ["+25193932056"];
-          // const text = "Sample text";
+          text = text.replace(
+            /\$time/,
+            dateUtil.formatDate(
+              nextWinner.value.time.toDate(),
+              "MM/DD/YYYY H:m"
+            )
+          );
+
           submitting.value = true;
           Plugins.SmsManager.send({
             numbers,
