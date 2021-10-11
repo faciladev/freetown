@@ -14,11 +14,10 @@
               style="width: 100%"
               v-model="formData.referenceNo"
               :rules="[
-                (val) => validateMask(val) || 'Enter valid phone number',
+                (val) => validateRefNo(val) || 'Enter valid phone number',
               ]"
-              mask="#####"
               label="Reference No."
-              fill-mask
+              type="number"
             />
           </div>
 
@@ -30,8 +29,7 @@
               ]"
               v-model="formData.phoneNo"
               label="Cell Phone"
-              fill-mask
-              mask="(###) ### - ######"
+              type="number"
             />
           </div>
           <q-card-section>
@@ -62,24 +60,28 @@ export default {
     const store = useStore();
     const userTypes = ["Sales", "Auditor", "Admin"];
     const formData = reactive({
-      phoneNo: "2519",
+      phoneNo: "09",
       status: "registered",
       businessId: null,
       referenceNo: "",
     });
-    const validateMask = (val) => {
-      //Doesn't have _ and has something else
-      return !/\_/.test(val) && /[^_]+/.test(val);
+    // const validateMask = (val) => {
+    //   //Doesn't have _ and has something else
+    //   return !/\_/.test(val) && /[^_]+/.test(val);
+    // };
+    const validateRefNo = (val) => {
+      return /^\d{5}$/.test(val);
     };
     const validatePhoneNo = (val) => {
-      return validateMask(val) && /^\(251\)\s9/.test(val);
+      return /^09\d{8}$/.test(val);
     };
 
     return {
       formData,
       submitting: computed(() => store.state.auth.submitting),
       userTypes,
-      validateMask,
+      validateRefNo,
+      // validateMask,
       validatePhoneNo,
       isValidEmail(email) {
         const re =
@@ -87,15 +89,8 @@ export default {
         return re.test(String(email).toLowerCase());
       },
       submitForm: async () => {
-        const res = formData.phoneNo.split("-");
-        const initial = res[0].substring(6, 9);
-        const main = res[1].trim();
-        const phoneNo = `0${initial}${main}`;
-        await store.dispatch("auth/registerTransaction", {
-          ...formData,
-          phoneNo,
-        });
-        formData.phoneNo = "2519";
+        await store.dispatch("auth/registerTransaction", formData);
+        formData.phoneNo = "09";
         formData.referenceNo = "";
         formData.businessId = null;
         props.hideModal();

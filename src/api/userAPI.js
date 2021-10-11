@@ -56,7 +56,7 @@ export const getEarliestCommissionedAPI = (callback, businessId) => {
     const unsubscribe = docRef
       .where("businessId", "==", businessId)
       .where("status", "==", "commissioned")
-      .orderBy("referenceNo", "asc")
+      .orderBy("time", "asc")
       .limit(1)
       .onSnapshot({ includeMetadataChanges: true }, callback);
   });
@@ -326,7 +326,7 @@ export const getAllTransactionsAPI = async (
     const docRef = db.collectionGroup("transactions");
     const docSnaps = await docRef
       .where("businessId", "==", businessId)
-      .orderBy(lastDocField, "asc")
+      .orderBy(lastDocField, "desc")
       .startAfter(lastDocVal)
       .limit(LIMIT)
       .get();

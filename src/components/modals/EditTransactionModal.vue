@@ -12,12 +12,11 @@
             <q-input
               style="width: 100%"
               :rules="[
-                (val) => validateMask(val) || 'Enter valid phone number',
+                (val) => validateRefNo(val) || 'Enter valid phone number',
               ]"
               v-model="transactionToSubmit.referenceNo"
               label="Reference No."
-              fill-mask
-              mask="#####"
+              type="number"
             />
           </div>
           <div class="row q-mb-sm">
@@ -28,8 +27,7 @@
               ]"
               v-model="transactionToSubmit.phoneNo"
               label="Cell Phone"
-              fill-mask
-              mask="(###) ### - ######"
+              type="number"
             />
           </div>
           <q-card-section>
@@ -63,35 +61,36 @@ export default {
   setup(props) {
     const store = useStore();
     let transactionToSubmit = reactive(Object.assign({}, props.transaction));
-    const phone = transactionToSubmit.phoneNo;
-    transactionToSubmit.phoneNo = `(251) ${phone.substring(
-      1,
-      4
-    )}-${phone.substring(4, 10)}`;
+    // const phone = transactionToSubmit.phoneNo;
+    // transactionToSubmit.phoneNo = `(251) ${phone.substring(
+    //   1,
+    //   4
+    // )}-${phone.substring(4, 10)}`;
     const submitting = ref(false);
-    const validateMask = (val) => {
-      //Doesn't have _ and has something else
-      return !/\_/.test(val) && /[^_]+/.test(val);
+    // const validateMask = (val) => {
+    //   //Doesn't have _ and has something else
+    //   return !/\_/.test(val) && /[^_]+/.test(val);
+    // };
+    const validateRefNo = (val) => {
+      return /^\d{5}$/.test(val);
     };
     const validatePhoneNo = (val) => {
-      return validateMask(val) && /^\(251\)\s9/.test(val);
+      return /^09\d{8}$/.test(val);
     };
 
     return {
       transactionToSubmit,
       submitting,
-      validateMask,
+      validateRefNo,
+      // validateMask,
       validatePhoneNo,
       submitForm: async () => {
         submitting.value = true;
-        const res = transactionToSubmit.phoneNo.split("-");
-        const initial = res[0].substring(6, 9);
-        const main = res[1].trim();
-        const phoneNo = `0${initial}${main}`;
-        await store.dispatch("auth/editTransaction", {
-          ...transactionToSubmit,
-          phoneNo,
-        });
+        // const res = transactionToSubmit.phoneNo.split("-");
+        // const initial = res[0].substring(6, 9);
+        // const main = res[1].trim();
+        // const phoneNo = `0${initial}${main}`;
+        await store.dispatch("auth/editTransaction", transactionToSubmit);
         submitting.value = false;
         props.hideModal();
 

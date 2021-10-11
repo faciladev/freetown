@@ -33,7 +33,7 @@ const state = {
   lastDocField: "fullName",
   lastDocFieldTrans: "referenceNo",
   lastDocVal: "A",
-  lastDocValTrans: 0,
+  lastDocValTrans: "9999999",
   settings: {
     id: null,
     amount: { min: 0, max: 0 },
