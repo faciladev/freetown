@@ -38,7 +38,7 @@ export default {
   setup() {
     const store = useStore();
     onUnmounted(() => {
-      store.commit("auth/setLastDocValTrans", 0);
+      store.commit("auth/setLastDocValTrans", "9999999");
       store.commit("auth/clearTransactions");
     });
     return {
