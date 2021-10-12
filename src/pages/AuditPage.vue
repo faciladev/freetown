@@ -81,6 +81,7 @@ export default defineComponent({
       submitting,
       reward: async () => {
         if ($q.platform.is.mobile) {
+          submitting.value = true;
           const numbers = [nextWinner.value.phoneNo];
           const qr = await store.dispatch("auth/getUniqueQR", 6);
 
@@ -95,14 +96,13 @@ export default defineComponent({
             )
           );
 
-          submitting.value = true;
+          await store.dispatch("auth/rewardWinner", qr);
           Plugins.SmsManager.send({
             numbers,
             text,
           })
-            .then(async () => {
+            .then(() => {
               // SMS app was opened
-              await store.dispatch("auth/rewardWinner", qr);
               submitting.value = false;
             })
             .catch((error) => {
