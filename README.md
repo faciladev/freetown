@@ -1,22 +1,4 @@
-# Free Town (freetown)
+# Free Town Rewards
 
-A marketing software.
+A marketing software built using vuejs and firebase that lets a business owner track its customers' transactions and send out reward sms texts that are redeemable. Reward criteria is configurable through settings inside the app. 
 
-## Install the dependencies
-```bash
-yarn
-```
-
-### Start the app in development mode (hot-code reloading, error reporting, etc.)
-```bash
-quasar dev
-```
-
-
-### Build the app for production
-```bash
-quasar build
-```
-
-### Customize the configuration
-See [Configuring quasar.conf.js](https://v2.quasar.dev/quasar-cli/quasar-conf-js).
